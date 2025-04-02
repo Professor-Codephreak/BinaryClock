@@ -95,23 +95,23 @@ The Year, Month, and Day values are obtained from the system `Date` object. Each
 ### Time Display & Toggles
 
 --> **Hour Format (12/24):**
-    * The application maintains an internal state for 12-hour or 24-hour mode (defaulting to 24).
-    * The raw hour (0-23) is fetched. If 12-hour mode is active, it's converted mathematically to the 1-12 range.
-    * The corresponding toggle button displays the *other* mode's value ("12" or "24") as its label.
---> **Time Encoding (Standard/BCD):**
-    * The application maintains a state for Standard Binary or BCD mode (defaulting to Standard).
-    * **Standard Binary:** The (potentially 12/24 adjusted) hour value (0-23 or 1-12) and the minute/second values (0-59) are converted to base-2 using `number.toString(2)` and padded to the appropriate bit length (5/4 for H, 6 for M/S).
-    * **BCD:** The 2-digit string representation of the (potentially adjusted) hour, minute, and second is processed. Each *individual decimal digit* is converted to its 4-bit BCD equivalent (e.g., '7' -> `0111`). The two 4-bit groups for each time component are displayed with a space.
-    * The "BCD" toggle button changes appearance (dim/bright) to reflect the active mode.
-    * The 12/24 button's *label format* (standard binary vs. BCD for "12"/"24") also updates based on the active time encoding mode.
---> **Updates:** JavaScript's `setInterval` function calls an `updateClock` routine every 1000ms to refresh the date and time display based on the current state of the two toggles.
+    * The application maintains an internal state for 12-hour or 24-hour mode (defaulting to 24)<br />
+    * The raw hour (0-23) is fetched. If 12-hour mode is active, it's converted mathematically to the 1-12 range<br />
+    * The corresponding toggle button displays the *other* mode's value ("12" or "24") as its label<br />
+--> **Time Encoding (Standard/BCD):**<br />
+    * The application maintains a state for Standard Binary or BCD mode (defaulting to Standard)<br />
+    * **Standard Binary:** The (potentially 12/24 adjusted) hour value (0-23 or 1-12) and the minute/second values (0-59) are converted to base-2 using `number.toString(2)` and padded to the appropriate bit length (5/4 for H, 6 for M/S)<br />
+    * **BCD:** The 2-digit string representation of the (potentially adjusted) hour, minute, and second is processed. Each *individual decimal digit* is converted to its 4-bit BCD equivalent (e.g., '7' -> `0111`). The two 4-bit groups for each time component are displayed with a space<br />
+    * The "BCD" toggle button changes appearance (dim/bright) to reflect the active mode<br />
+    * The 12/24 button's *label format* (standard binary vs. BCD for "12"/"24") also updates based on the active time encoding mode<br />
+--> **Updates:** JavaScript's `setInterval` function calls an `updateClock` routine every 1000ms to refresh the date and time display based on the current state of the two toggles<br />
 
 ### 3D Interaction
 
-* CSS sets up a 3D perspective environment using the `perspective` property on a container element.
-* The clock face is wrapped in an element (`#interactive-cube`) with `transform-style: preserve-3d;`.
-* JavaScript (`motion.js`) listens for mouse drag events.
-* During a drag, it calculates the change in mouse position and updates the `rotateX` and `rotateY` CSS transform properties of `#interactive-cube` via inline styles, allowing smooth rotation.
+* CSS sets up a 3D perspective environment using the `perspective` property on a container element<br />
+* The clock face is wrapped in an element (`#interactive-cube`) with `transform-style: preserve-3d;`<br />
+* JavaScript (`motion.js`) listens for mouse drag events<br />
+* During a drag, it calculates the change in mouse position and updates the `rotateX` and `rotateY` CSS transform properties of `#interactive-cube` via inline styles, allowing smooth rotation<br />
 
 ## File Structure
 ```txt
@@ -131,10 +131,10 @@ No build steps or external dependencies (other than the Google Font) are require
 
 ## Customization
 
-* **Theme:** Modify color variables (e.g., `--primary-color`, `--bg-color`) in the `:root` section of `styled.css`.
-* **3D:** Adjust the `perspective` value in `.showcase-container` (CSS) or the rotation `sensitivity` constant in `motion.js`.
-* **Initial View:** Change the `initialRotation` values in `motion.js`.
-* **Binary Padding:** Modify bit-length constants (e.g., `YEAR_BITS`) in `binaryclock.js` if different padding is desired.
+* **Theme:** Modify color variables (e.g., `--primary-color`, `--bg-color`) in the `:root` section of `styled.css`<br />
+* **3D:** Adjust the `perspective` value in `.showcase-container` (CSS) or the rotation `sensitivity` constant in `motion.js`<br />
+* **Initial View:** Change the `initialRotation` values in `motion.js`<br />
+* **Binary Padding:** Modify bit-length constants (e.g., `YEAR_BITS`) in `binaryclock.js` if different padding is desired<br />
 
 ## Author
 
