@@ -1,0 +1,98 @@
+/* Define color variables in the :root scope */
+:root {
+    --bg-color: #0a0a0a;                /* Dark background */
+    --primary-color: #00ff00;           /* Bright green text/accents */
+    --dark-primary-color: #005000;      /* Darker green accents */
+    --container-bg-color: rgba(0, 20, 0, 0.8); /* Semi-transparent container background */
+    --glow-color: var(--primary-color); /* Use primary color for glows */
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--bg-color);
+    font-family: 'VT323', monospace;
+    color: var(--primary-color);
+    font-size: 1.8rem;
+    overflow: hidden;
+}
+
+.container {
+    padding: 25px;
+    border: 2px solid var(--primary-color);
+    background-color: var(--container-bg-color);
+    box-shadow: 0 0 15px var(--glow-color);
+}
+
+/* Date Display (Binary) */
+.date-display {
+    display: flex;
+    justify-content: space-between; /* Spread Y M D */
+    align-items: center;
+    margin-bottom: 25px; /* Space below date */
+    padding-bottom: 15px;
+    border-bottom: 1px dashed var(--dark-primary-color);
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.date-display > div {
+    display: flex;
+    align-items: baseline; /* Align label and binary string nicely */
+    gap: 10px;
+}
+
+.date-label {
+    font-size: 1.5rem;
+    color: var(--dark-primary-color);
+}
+
+.binary-date {
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    text-shadow: 0 0 5px var(--glow-color);
+    word-break: break-all;
+}
+
+/* Binary Clock Layout */
+.binary-clock {
+    display: flex;
+    flex-direction: column; /* NEW: Stack H, M, S vertically */
+    align-items: flex-start; /* Align items to the left */
+    gap: 15px;              /* Vertical gap between H, M, S */
+}
+
+.time-section {
+    display: flex;          /* Arrange label and binary string horizontally */
+    flex-direction: row;
+    align-items: baseline; /* Align label text with binary string text */
+    gap: 10px;              /* Gap between label and binary string */
+    width: 100%;            /* Ensure sections take full width for alignment */
+}
+
+.label {
+    font-size: 1.8rem;      /* Adjusted label size */
+    margin-bottom: 0;
+    color: var(--primary-color); /* Make labels bright */
+    flex-shrink: 0;        /* Prevent label from shrinking */
+    width: 25px;           /* Give label a fixed width for alignment */
+    text-align: right;
+}
+
+.binary-time {
+    font-size: 1.6rem;       /* Font size for H M S binary string */
+    letter-spacing: 3px;    /* Space out binary digits */
+    text-shadow: 0 0 5px var(--glow-color);
+    /* Optional: If BCD strings get too long */
+    /* word-break: break-all; */
+}
+
+/* REMOVED styles for .digits, .digit-column, .bit */
