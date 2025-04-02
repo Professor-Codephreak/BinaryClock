@@ -3,51 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Binary Clock</title>
+    <title>Binary Clock 3d</title>
+    <meta name="description" content="An interactive 3D binary clock displaying date and time (switchable BCD/Standard Binary & 12/24 Hour) with a terminal aesthetic.">
+    <meta name="author" content="Gregory L. Magnusson">
     <link rel="stylesheet" href="styled.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <div class="date-display">
-            <div>
-                <span class="date-label">Y:</span>
-                <span class="binary-date" id="year-binary">00000000000</span>
-            </div>
-            <div>
-                <span class="date-label">M:</span>
-                <span class="binary-date" id="month-binary">0000</span>
-            </div>
-            <div>
-                <span class="date-label">D:</span>
-                <span class="binary-date" id="day-binary">00000</span>
-             </div>
-        </div>
+    <div class="showcase-container">
 
-        <div class="toggle-container">
-             <button id="toggle-mode-btn">Switch to Standard Binary</button>
-        </div>
+        <div id="interactive-cube">
+            <div class="container clock-face">
 
-        <div class="binary-clock">
-            <div class="time-section hours">
-                <span class="label">H:</span>
-                <span class="binary-time" id="hours-binary">0000 0000</span>
-            </div>
+                <div class="toggle-container">
+                     <button id="toggle-hour-mode-btn" title="Toggle 12/24 Hour Format">1100</button> <button id="toggle-mode-btn" title="Toggle BCD/Standard Time Display">BCD</button>
+                </div>
 
-            <div class="time-section minutes">
-                 <span class="label">M:</span>
-                 <span class="binary-time" id="minutes-binary">0000 0000</span>
-            </div>
+                <div class="date-display">
+                    <div><span class="date-label">Y:</span><span class="binary-date" id="year-binary">Loading..</span></div>
+                    <div><span class="date-label">M:</span><span class="binary-date" id="month-binary">...</span></div>
+                    <div><span class="date-label">D:</span><span class="binary-date" id="day-binary">...</span></div>
+                </div>
 
-            <div class="time-section seconds">
-                 <span class="label">S:</span>
-                 <span class="binary-time" id="seconds-binary">0000 0000</span>
-            </div>
-        </div>
-    </div>
+                <div class="binary-clock">
+                    <div class="time-section hours"><span class="label">H:</span><span class="binary-time" id="hours-binary">...</span></div>
+                    <div class="time-section minutes"><span class="label">M:</span><span class="binary-time" id="minutes-binary">...</span></div>
+                    <div class="time-section seconds"><span class="label">S:</span><span class="binary-time" id="seconds-binary">...</span></div>
+                </div>
 
-    <script src="binaryclock.js"></script>
+            </div> </div> </div><script src="binaryclock.js"></script>
+    <script src="motion.js"></script>
 </body>
 </html>
