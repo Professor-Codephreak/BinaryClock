@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Clock</title>
+    <link rel="stylesheet" href="styled.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="date-display">
+            <div>
+                <span class="date-label">Y:</span>
+                <span class="binary-date" id="year-binary">00000000000</span>
+            </div>
+            <div>
+                <span class="date-label">M:</span>
+                <span class="binary-date" id="month-binary">0000</span>
+            </div>
+            <div>
+                <span class="date-label">D:</span>
+                <span class="binary-date" id="day-binary">00000</span>
+             </div>
+        </div>
+
+        <div class="binary-clock">
+            <div class="time-section hours">
+                <span class="label">H:</span> <span class="binary-time" id="hours-binary">0000 0000</span> </div>
+
+            <div class="time-section minutes">
+                 <span class="label">M:</span>
+                 <span class="binary-time" id="minutes-binary">0000 0000</span>
+            </div>
+
+            <div class="time-section seconds">
+                 <span class="label">S:</span>
+                 <span class="binary-time" id="seconds-binary">0000 0000</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="binaryclock.js"></script>
+</body>
+</html>
