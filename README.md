@@ -1,29 +1,7 @@
 # JavaScript Binary Clock (BCD & Binary Date)
 
-## Overview
-
-This project is a web-based binary clock created using vanilla JavaScript, HTML, and CSS. It displays the current date (Year, Month, Day) in standard binary format and the current time (Hours, Minutes, Seconds) using Binary-Coded Decimal (BCD). The clock features a retro terminal-like aesthetic and updates in real-time.
-
-*(Optional: Consider adding a screenshot of the clock here)*
-*(Optional: Or add a link to a live demo if hosted)*
-## How It Works
-
-The clock fetches the current date and time from your system every second and updates the display accordingly. It uses two different binary representation methods:
-
-### Date Display (Standard Binary)
-
-* The top section shows the current Year, Month, and Day.
-* Each component (Y, M, D) is converted into its standard **binary representation** (base-2).
-* To ensure consistent length, the binary strings are padded with leading zeros:
-    * **Year (Y):** Padded to 11 bits (sufficient for years up to 2047).
-    * **Month (M):** Padded to 4 bits (sufficient for months 1-12).
-    * **Day (D):** Padded to 5 bits (sufficient for days 1-31).
-* These binary strings are displayed horizontally.
-
-### Time Display (Binary-Coded Decimal - BCD)
-
 * The main section displays the Hours (H), Minutes (M), and Seconds (S), stacked vertically.
-* This part uses **Binary-Coded Decimal (BCD)** representation.
+**Binary-Coded Decimal (BCD)** representation.
 
 #### What is BCD?
 
@@ -41,7 +19,7 @@ BCD is a way of encoding decimal numbers where each individual *decimal digit* (
 |       7       |        0111        |
 |       8       |        1000        |
 |       9       |        1001        |
-
+```
 Unlike standard binary which converts the entire number (e.g., decimal 23 -> binary 10111), BCD handles each digit separately. This makes conversion to and from decimal displays simpler, which was useful in early digital electronics.
 
 #### How the Clock Uses BCD for Time
@@ -76,13 +54,6 @@ This BCD representation correctly handles the full range of hours (00-23), minut
 * `styled.css`: Contains all the styling rules, including layout and terminal theme.
 * `binaryclock.js`: Handles fetching the time/date, performing binary/BCD conversions, and updating the DOM.
 
-## How to Run
-
-Download the three files (`index.html`, `styled.css`, `binaryclock.js`) into the same folder.
-Open the `index.html` file in your web browser.
-
-The binary clock should appear and start updating immediately.
-
 ## Customization
 
 The visual theme (colors) can be easily customized by modifying the CSS variables defined in the `:root` section at the top of `styled.css`.
@@ -92,17 +63,6 @@ The visual theme (colors) can be easily customized by modifying the CSS variable
 ## Overview
 
 This project presents an interactive, web-based binary clock rendered within a draggable 3D interface. It utilizes vanilla JavaScript, HTML5, and CSS3 to display the current date and time using different binary formats, all wrapped in a retro terminal aesthetic. Users can rotate the clock face using mouse drag and toggle time display modes via unique binary-labeled buttons.
-
----
-
-*(Placeholder: Consider adding a high-quality screenshot or GIF demonstrating the clock and its 3D rotation)*
-
-
-*(Placeholder: Add link if hosted online)*
-
-`[Live Demo](your-live-demo-link-here)`
-
----
 
 ## Features
 
@@ -134,17 +94,17 @@ The Year, Month, and Day values are obtained from the system `Date` object. Each
 
 ### Time Display & Toggles
 
-1.  **Hour Format (12/24):**
+--> **Hour Format (12/24):**
     * The application maintains an internal state for 12-hour or 24-hour mode (defaulting to 24).
     * The raw hour (0-23) is fetched. If 12-hour mode is active, it's converted mathematically to the 1-12 range.
     * The corresponding toggle button displays the *other* mode's value ("12" or "24") as its label.
-2.  **Time Encoding (Standard/BCD):**
+--> **Time Encoding (Standard/BCD):**
     * The application maintains a state for Standard Binary or BCD mode (defaulting to Standard).
     * **Standard Binary:** The (potentially 12/24 adjusted) hour value (0-23 or 1-12) and the minute/second values (0-59) are converted to base-2 using `number.toString(2)` and padded to the appropriate bit length (5/4 for H, 6 for M/S).
     * **BCD:** The 2-digit string representation of the (potentially adjusted) hour, minute, and second is processed. Each *individual decimal digit* is converted to its 4-bit BCD equivalent (e.g., '7' -> `0111`). The two 4-bit groups for each time component are displayed with a space.
     * The "BCD" toggle button changes appearance (dim/bright) to reflect the active mode.
     * The 12/24 button's *label format* (standard binary vs. BCD for "12"/"24") also updates based on the active time encoding mode.
-3.  **Updates:** JavaScript's `setInterval` function calls an `updateClock` routine every 1000ms to refresh the date and time display based on the current state of the two toggles.
+--> **Updates:** JavaScript's `setInterval` function calls an `updateClock` routine every 1000ms to refresh the date and time display based on the current state of the two toggles.
 
 ### 3D Interaction
 
@@ -154,20 +114,20 @@ The Year, Month, and Day values are obtained from the system `Date` object. Each
 * During a drag, it calculates the change in mouse position and updates the `rotateX` and `rotateY` CSS transform properties of `#interactive-cube` via inline styles, allowing smooth rotation.
 
 ## File Structure
-
+```txt
 .
 ├── index.html         # HTML structure
 ├── styled.css         # CSS styling (layout, theme, 3D)
 ├── binaryclock.js     # Clock logic, date/time updates, toggle handlers
 └── motion.js          # 3D drag rotation handling
-
+```
 
 ## Setup
 
-1.  Ensure all four files (`index.html`, `styled.css`, `binaryclock.js`, `motion.js`) are located in the same directory.
-2.  Open the `index.html` file in a modern web browser that supports CSS 3D transforms (e.g., Chrome, Firefox, Edge, Safari).
+Ensure all four files (`index.html`, `styled.css`, `binaryclock.js`, `motion.js`) are located in the same directory<br />
+Open the `index.html` file in a modern web browser that supports CSS 3D transforms (e.g., Chrome, Firefox, Edge, Safari)<br />
 
-No build steps or external dependencies (other than the Google Font) are required.
+No build steps or external dependencies (other than the Google Font) are required<br />
 
 ## Customization
 
