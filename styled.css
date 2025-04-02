@@ -1,118 +1,126 @@
-/* Define color variables in the :root scope */
+/* License: BANKON */
+
+/* --- Base and Variables --- */
 :root {
     --bg-color: #0a0a0a;
     --primary-color: #00ff00;
-    --dark-primary-color: #005000;
-    --container-bg-color: rgba(0, 20, 0, 0.8);
+    --dark-primary-color: #005000; /* Used for inactive button border/text */
+    /* --dim-color: #003000;  Removed, using dark-primary now */
+    --container-bg-color: rgba(0, 20, 0, 0.9);
     --glow-color: var(--primary-color);
+    --base-font-size: 1.8rem;
 }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
     background-color: var(--bg-color);
     font-family: 'VT323', monospace;
     color: var(--primary-color);
-    font-size: 1.8rem;
+    font-size: var(--base-font-size);
     overflow: hidden;
+    line-height: 1.4;
 }
 
-.container {
+/* --- 3D Showcase --- */
+.showcase-container { min-height: 100vh; width: 100%; display: flex; justify-content: center; align-items: center; perspective: 1200px; perspective-origin: 50% 50%; position: relative; cursor: grab; overflow: hidden; }
+
+/* --- Rotatable Cube Structure --- */
+#interactive-cube { position: relative; transform-style: preserve-3d; transition: transform 0.5s ease-out; }
+
+/* The clock face */
+.clock-face {
+    position: relative; /* For positioning toggle buttons */
     padding: 25px;
+    padding-top: 45px;
     border: 2px solid var(--primary-color);
     background-color: var(--container-bg-color);
     box-shadow: 0 0 15px var(--glow-color);
+    transform: translateZ(1px);
+    backface-visibility: hidden;
+    width: auto;
+    max-width: 90vw;
+    min-width: 400px;
 }
 
-/* Date Display (Binary) */
-.date-display {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    /* margin-bottom: 25px; */ /* Moved margin to toggle container */
-    padding-bottom: 15px;
-    border-bottom: 1px dashed var(--dark-primary-color);
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-.date-display > div {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-}
-
-.date-label {
-    font-size: 1.5rem;
-    color: var(--dark-primary-color);
-}
-
-.binary-date {
-    font-size: 1.4rem;
-    letter-spacing: 2px;
-    text-shadow: 0 0 5px var(--glow-color);
-    word-break: break-all;
-}
-
-/* Toggle Button */
+/* --- Toggle Buttons Container --- */
 .toggle-container {
-    text-align: center; /* Center the button */
-    margin-top: 15px; /* Space above button */
-    margin-bottom: 25px; /* Space below button */
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+    display: flex; /* Arrange buttons horizontally */
+    gap: 6px; /* Space between buttons */
 }
 
+/* --- BCD Toggle Button Styling --- */
 #toggle-mode-btn {
-    background-color: var(--dark-primary-color);
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
-    padding: 5px 15px;
-    font-family: 'VT323', monospace;
-    font-size: 1.2rem;
+    background-color: transparent;
+    /* Default state (Standard time active) is slightly brighter now */
+    border: 1px solid var(--dark-primary-color);
+    color: var(--dark-primary-color);
+    padding: 2px 6px;
+    font-family: inherit;
+    font-size: calc(var(--base-font-size) * 0.6);
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
+    transition: color 0.3s, border-color 0.3s, box-shadow 0.3s;
+    border-radius: 3px;
+    line-height: 1; /* Ensure consistent height */
 }
-
-#toggle-mode-btn:hover {
-    background-color: var(--primary-color);
-    color: var(--bg-color);
-}
-
-/* Binary Clock Layout */
-.binary-clock {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-}
-
-.time-section {
-    display: flex;
-    flex-direction: row;
-    align-items: baseline;
-    gap: 10px;
-    width: 100%;
-}
-
-.label {
-    font-size: 1.8rem;
-    margin-bottom: 0;
+/* Active state (BCD time active) */
+#toggle-mode-btn.active {
     color: var(--primary-color);
-    flex-shrink: 0;
-    width: 25px;
-    text-align: right;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 5px var(--glow-color);
+}
+#toggle-mode-btn:hover {
+    color: var(--primary-color); /* Brighter hover */
+    border-color: var(--primary-color);
+}
+#toggle-mode-btn.active:hover {
+    color: #aafFAA;
+    border-color: #aaffaa;
 }
 
-.binary-time {
-    font-size: 1.6rem;
-    letter-spacing: 3px;
-    text-shadow: 0 0 5px var(--glow-color);
-    /* Allow flexible width for different binary string lengths */
+/* --- 12/24 Hour Toggle Button Styling --- */
+#toggle-hour-mode-btn {
+    background-color: transparent;
+    border: 1px solid var(--dark-primary-color); /* Default dim border */
+    color: var(--dark-primary-color); /* Default dim text */
+    padding: 2px 6px;
+    font-family: inherit;
+    font-size: calc(var(--base-font-size) * 0.6);
+    cursor: pointer;
+    transition: color 0.3s, border-color 0.3s, box-shadow 0.3s;
+    border-radius: 3px;
+    letter-spacing: 1px; /* Space out binary digits */
+    line-height: 1; /* Ensure consistent height */
+    min-width: 40px; /* Give space for 11000 */
+    text-align: center;
+}
+#toggle-hour-mode-btn:hover {
+    color: var(--primary-color); /* Brighten on hover */
+    border-color: var(--primary-color);
+}
+/* No specific '.active' class needed as text changes */
+
+
+/* --- Clock Internal Styles --- */
+.date-display { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px dashed var(--dark-primary-color); gap: 15px; flex-wrap: wrap; }
+.date-display > div { display: flex; align-items: baseline; gap: 10px; }
+.date-label { font-size: calc(var(--base-font-size) * 0.85); color: var(--dark-primary-color); }
+.binary-date { font-size: calc(var(--base-font-size) * 0.8); letter-spacing: 2px; text-shadow: 0 0 5px var(--glow-color); word-break: break-all; }
+
+.binary-clock { margin-top: 20px; display: flex; flex-direction: column; align-items: flex-start; gap: 15px; }
+.time-section { display: flex; flex-direction: row; align-items: baseline; gap: 10px; width: 100%; }
+.label { font-size: var(--base-font-size); color: var(--primary-color); flex-shrink: 0; width: 28px; text-align: right; }
+.binary-time { font-size: calc(var(--base-font-size) * 0.9); letter-spacing: 3px; text-shadow: 0 0 5px var(--glow-color); }
+
+/* --- Media Query --- */
+@media (max-width: 600px) {
+    :root { --base-font-size: 1.5rem; }
+    .clock-face { padding: 15px; padding-top: 40px; min-width: 95%; max-width: 95%; }
+    .toggle-container { gap: 4px; }
+    #toggle-mode-btn, #toggle-hour-mode-btn { padding: 1px 4px; }
+    .binary-clock { margin-top: 15px; gap: 10px; }
 }
