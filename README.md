@@ -46,13 +46,13 @@ Unlike standard binary which converts the entire number (e.g., decimal 23 -> bin
 
 #### How the Clock Uses BCD for Time
 
-1.  The clock gets the current time in HH:MM:SS format (e.g., 16:15:42).
-2.  For each component (Hours, Minutes, Seconds), it looks at the two decimal digits individually.
+-->  The clock gets the current time in HH:MM:SS format (e.g., 16:15:42).
+--> For each component (Hours, Minutes, Seconds), it looks at the two decimal digits individually.
     * Example Hour (HH = 16): It processes the '1' and the '6' separately.
     * Example Minute (MM = 15): It processes the '1' and the '5' separately.
     * Example Second (SS = 42): It processes the '4' and the '2' separately.
-3.  It converts each decimal digit into its 4-bit BCD equivalent using the table above.
-4.  It displays these two 4-bit BCD groups, separated by a space, next to the corresponding label (H:, M:, S:).
+--> It converts each decimal digit into its 4-bit BCD equivalent using the table above.
+--> It displays these two 4-bit BCD groups, separated by a space, next to the corresponding label (H:, M:, S:).
 
 * Example Time: **16:15:42**
     * **H:** Decimal '1' -> BCD `0001`, Decimal '6' -> BCD `0110`. Display: `H: 0001 0110`
