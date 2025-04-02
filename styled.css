@@ -1,10 +1,10 @@
 /* Define color variables in the :root scope */
 :root {
-    --bg-color: #0a0a0a;                /* Dark background */
-    --primary-color: #00ff00;           /* Bright green text/accents */
-    --dark-primary-color: #005000;      /* Darker green accents */
-    --container-bg-color: rgba(0, 20, 0, 0.8); /* Semi-transparent container background */
-    --glow-color: var(--primary-color); /* Use primary color for glows */
+    --bg-color: #0a0a0a;
+    --primary-color: #00ff00;
+    --dark-primary-color: #005000;
+    --container-bg-color: rgba(0, 20, 0, 0.8);
+    --glow-color: var(--primary-color);
 }
 
 * {
@@ -35,9 +35,9 @@ body {
 /* Date Display (Binary) */
 .date-display {
     display: flex;
-    justify-content: space-between; /* Spread Y M D */
+    justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px; /* Space below date */
+    /* margin-bottom: 25px; */ /* Moved margin to toggle container */
     padding-bottom: 15px;
     border-bottom: 1px dashed var(--dark-primary-color);
     gap: 15px;
@@ -46,7 +46,7 @@ body {
 
 .date-display > div {
     display: flex;
-    align-items: baseline; /* Align label and binary string nicely */
+    align-items: baseline;
     gap: 10px;
 }
 
@@ -62,37 +62,57 @@ body {
     word-break: break-all;
 }
 
+/* Toggle Button */
+.toggle-container {
+    text-align: center; /* Center the button */
+    margin-top: 15px; /* Space above button */
+    margin-bottom: 25px; /* Space below button */
+}
+
+#toggle-mode-btn {
+    background-color: var(--dark-primary-color);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    padding: 5px 15px;
+    font-family: 'VT323', monospace;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+#toggle-mode-btn:hover {
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+}
+
 /* Binary Clock Layout */
 .binary-clock {
     display: flex;
-    flex-direction: column; /* NEW: Stack H, M, S vertically */
-    align-items: flex-start; /* Align items to the left */
-    gap: 15px;              /* Vertical gap between H, M, S */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
 }
 
 .time-section {
-    display: flex;          /* Arrange label and binary string horizontally */
+    display: flex;
     flex-direction: row;
-    align-items: baseline; /* Align label text with binary string text */
-    gap: 10px;              /* Gap between label and binary string */
-    width: 100%;            /* Ensure sections take full width for alignment */
+    align-items: baseline;
+    gap: 10px;
+    width: 100%;
 }
 
 .label {
-    font-size: 1.8rem;      /* Adjusted label size */
+    font-size: 1.8rem;
     margin-bottom: 0;
-    color: var(--primary-color); /* Make labels bright */
-    flex-shrink: 0;        /* Prevent label from shrinking */
-    width: 25px;           /* Give label a fixed width for alignment */
+    color: var(--primary-color);
+    flex-shrink: 0;
+    width: 25px;
     text-align: right;
 }
 
 .binary-time {
-    font-size: 1.6rem;       /* Font size for H M S binary string */
-    letter-spacing: 3px;    /* Space out binary digits */
+    font-size: 1.6rem;
+    letter-spacing: 3px;
     text-shadow: 0 0 5px var(--glow-color);
-    /* Optional: If BCD strings get too long */
-    /* word-break: break-all; */
+    /* Allow flexible width for different binary string lengths */
 }
-
-/* REMOVED styles for .digits, .digit-column, .bit */
