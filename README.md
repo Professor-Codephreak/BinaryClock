@@ -100,7 +100,8 @@ The Year, Month, and Day values are obtained from the system `Date` object. Each
     * The corresponding toggle button displays the *other* mode's value ("12" or "24") as its label<br />
 --> **Time Encoding (Standard/BCD):**<br />
     * The application maintains a state for Standard Binary or BCD mode (defaulting to Standard)<br />
-    * **Standard Binary:** The (potentially 12/24 adjusted) hour value (0-23 or 1-12) and the minute/second values (0-59) are converted to base-2 using `number.toString(2)` and padded to the appropriate bit length (5/4 for H, 6 for M/S)<br />
+    * **Standard Binary:** The (potentially 12/24 adjusted) hour value (0-23 or 1-12) and the minute/second values (0-59) are converted to base-2 using `number.toString(2)` and padded to the appropriate bit length (5/4 for H, 6 for M/S)<br /><br />
+    * "In 'Standard Binary' mode, the clock displays the true binary representation of the numerical value for hours, minutes, and seconds. It takes the current hour (adjusted for 12/24 format), minute (0-59), and second (0-59), converts each number fully into its base-2 string (like decimal 27 becomes binary "11011"), and then pads these strings with leading zeros to ensure a consistent length (5 bits for 24hr/4 bits for 12hr, and 6 bits for minutes/seconds).",<br /><br />
     * **BCD:** The 2-digit string representation of the (potentially adjusted) hour, minute, and second is processed. Each *individual decimal digit* is converted to its 4-bit BCD equivalent (e.g., '7' -> `0111`). The two 4-bit groups for each time component are displayed with a space<br />
     * The "BCD" toggle button changes appearance (dim/bright) to reflect the active mode<br />
     * The 12/24 button's *label format* (standard binary vs. BCD for "12"/"24") also updates based on the active time encoding mode<br />
