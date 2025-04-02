@@ -138,9 +138,4 @@ No build steps or external dependencies (other than the Google Font) are require
 
 ## Author
 
-* Gregory L. Magnusson
-
-## License
-
-* BANKON
-
+* binaryclock (c) 2025 Gregory L. Magnusson BANKON License
