@@ -22,77 +22,79 @@ BCD is a way of encoding decimal numbers where each individual *decimal digit* (
 ```
 Unlike standard binary which converts the entire number (e.g., decimal 23 -> binary 10111), BCD handles each digit separately. This makes conversion to and from decimal displays simpler, which was useful in early digital electronics.
 
-#### How the Clock Uses BCD for Time
+#### How the Clock Uses BCD for Time<br />
 
--->  The clock gets the current time in HH:MM:SS format (e.g., 16:15:42).
---> For each component (Hours, Minutes, Seconds), it looks at the two decimal digits individually.
-    * Example Hour (HH = 16): It processes the '1' and the '6' separately.
-    * Example Minute (MM = 15): It processes the '1' and the '5' separately.
-    * Example Second (SS = 42): It processes the '4' and the '2' separately.
---> It converts each decimal digit into its 4-bit BCD equivalent using the table above.
---> It displays these two 4-bit BCD groups, separated by a space, next to the corresponding label (H:, M:, S:).
+-->  The clock gets the current time in HH:MM:SS format (e.g., 16:15:42)<br />
+--> For each component (Hours, Minutes, Seconds), it looks at the two decimal digits individually<br />
+    * Example Hour (HH = 16): It processes the '1' and the '6' separately<br />
+    * Example Minute (MM = 15): It processes the '1' and the '5' separately<br />
+    * Example Second (SS = 42): It processes the '4' and the '2' separately<br /><br />
+--> It converts each decimal digit into its 4-bit BCD equivalent using the table above<br /><br />
+--> It displays these two 4-bit BCD groups, separated by a space, next to the corresponding label (H:, M:, S:)<br />
 
+```txt
 * Example Time: **16:15:42**
     * **H:** Decimal '1' -> BCD `0001`, Decimal '6' -> BCD `0110`. Display: `H: 0001 0110`
     * **M:** Decimal '1' -> BCD `0001`, Decimal '5' -> BCD `0101`. Display: `M: 0001 0101`
     * **S:** Decimal '4' -> BCD `0100`, Decimal '2' -> BCD `0010`. Display: `S: 0100 0010`
-
-This BCD representation correctly handles the full range of hours (00-23), minutes (00-59), and seconds (00-59) by encoding each constituent decimal digit.
+```
+This BCD representation correctly handles the full range of hours (00-23), minutes (00-59), and seconds (00-59) by encoding each constituent decimal digit<br />
 
 ## Features
 
-* Real-time display of date and time.
-* Date (Y, M, D) shown in standard binary representation.
-* Time (H, M, S) shown using Binary-Coded Decimal (BCD).
-* Retro terminal aesthetic (monospace font, green-on-black).
-* Uses CSS Custom Properties (`:root`) for easy color theming.
-* Built with plain HTML, CSS, and JavaScript (no external libraries/frameworks needed besides the font).
+* Real-time display of date and time<br />
+* Date (Y, M, D) shown in standard binary representation<br />
+* Time (H, M, S) shown using Binary-Coded Decimal (BCD)<br />
+* Retro terminal aesthetic (monospace font, green-on-black)<br />
+* Uses CSS Custom Properties (`:root`) for easy color theming<br />
+* Built with plain HTML, CSS, and JavaScript (no external libraries/frameworks needed besides the font)<br />
 
 ## Files
 
-* `index.html`: The main HTML structure.
-* `styled.css`: Contains all the styling rules, including layout and terminal theme.
-* `binaryclock.js`: Handles fetching the time/date, performing binary/BCD conversions, and updating the DOM.
+* `index.html`: The main HTML structure<br />
+* `styled.css`: Contains all the styling rules, including layout and terminal theme<br />
+* `binaryclock.js`: Handles fetching the time/date, performing binary/BCD conversions, and updating the DOM<br />
 
 ## Customization
 
-The visual theme (colors) can be easily customized by modifying the CSS variables defined in the `:root` section at the top of `styled.css`.
+The visual theme (colors) can be easily customized by modifying the CSS variables defined in the `:root` section at the top of `styled.css`<br />
 
 # Interactive 3D Binary Clock
 
 ## Overview
 
-This project presents an interactive, web-based binary clock rendered within a draggable 3D interface. It utilizes vanilla JavaScript, HTML5, and CSS3 to display the current date and time using different binary formats, all wrapped in a retro terminal aesthetic. Users can rotate the clock face using mouse drag and toggle time display modes via unique binary-labeled buttons.
+This project presents an interactive, web-based binary clock rendered within a draggable 3D interface. It utilizes vanilla JavaScript, HTML5, and CSS3 to display the current date and time using different binary formats, all wrapped in a retro terminal aesthetic. Users can rotate the clock face using mouse drag and toggle time display modes via unique binary-labeled buttons<br />
 
 ## Features
 
-* **Real-Time Clock:** Updates every second to display the current time and date.
-* **Date Display:** Shows the current Year, Month, and Day in standard binary format, padded for consistency.
-* **Time Display:** Vertically stacks Hours, Minutes, and Seconds.
-* **Switchable Time Encoding:** Toggle between:
-    * **Standard Binary (Default):** Displays the full value of H, M, S in base-2 (e.g., 19:00 -> `10011`). Padding ensures consistent bit length (5 for 24hr, 4 for 12hr; 6 for M/S).
-    * **Binary-Coded Decimal (BCD):** Displays each decimal digit of H, M, S as a separate 4-bit binary group (e.g., 19:00 -> `0001 1001`).
-* **Switchable Hour Format:** Toggle between:
-    * **24-Hour Format (Default):** Displays hours from 00 to 23.
-    * **12-Hour Format:** Displays hours from 01 to 12.
-* **Dynamic Toggle Buttons:**
-    * The "BCD" button visually indicates the active time encoding mode (dim for Standard, bright/active for BCD).
-    * The 12/24 button dynamically displays the *target* mode ("12" or "24") using the currently active *encoding* (Standard Binary or BCD).
-* **Interactive 3D Rotation:** Click and drag the clock face or background to rotate the view in 3D space.
-* **Retro Terminal Aesthetic:** Uses a monospace font (`VT323`), green-on-black color scheme, and glow effects.
-* **Customizable Theme:** Colors can be easily modified using CSS Custom Properties (variables).
-* **Responsive Elements:** Basic responsiveness for usability on smaller screens.
+* **Real-Time Clock:** Updates every second to display the current time and date<br />
+* **Date Display:** Shows the current Year, Month, and Day in standard binary format, padded for consistency<br /><br />
+* **Time Display:** Vertically stacks Hours, Minutes, and Seconds<br />
+* **Switchable Time Encoding:** Toggle between:<br />
+    * **Standard Binary (Default):** Displays the full value of H, M, S in base-2 (e.g., 19:00 -> `10011`). Padding ensures consistent bit length (5 for 24hr, 4 for 12hr; 6 for M/S)<br />
+    * **Binary-Coded Decimal (BCD):** Displays each decimal digit of H, M, S as a separate 4-bit binary group (e.g., 19:00 -> `0001 1001`)<br /><br />
+* **Switchable Hour Format:** Toggle between:<br />
+    * **24-Hour Format (Default):** Displays hours from 00 to 23<br />
+    * **12-Hour Format:** Displays hours from 01 to 12<br /><br />
+* **Dynamic Toggle Buttons:**<br />
+    * The "BCD" button visually indicates the active time encoding mode (dim for Standard, bright/active for BCD)<br />
+    * The 12/24 button dynamically displays the *target* mode ("12" or "24") using the currently active *encoding* (Standard Binary or BCD)<br />
+* **Interactive 3D Rotation:** Click and drag the clock face or background to rotate the view in 3D space<br />
+* **Retro Terminal Aesthetic:** Uses a monospace font (`VT323`), green-on-black color scheme, and glow effects<br />
+* **Customizable Theme:** Colors can be easily modified using CSS Custom Properties (variables)<br />
+* **Responsive Elements:** Basic responsiveness for usability on smaller screens<br />
 
-## How It Works
+## How It Works<br />
 
 ### Date Display
 
-The Year, Month, and Day values are obtained from the system `Date` object. Each value is converted to its standard base-2 (binary) representation using `number.toString(2)` and then padded with leading zeros to a fixed length for consistent alignment:
+The Year, Month, and Day values are obtained from the system `Date` object. Each value is converted to its standard base-2 (binary) representation using `number.toString(2)` and then padded with leading zeros to a fixed length for consistent alignment:<br />
+```txt
 * Year: 11 bits
 * Month: 4 bits
 * Day: 5 bits
-
-### Time Display & Toggles
+```
+### Time Display & Toggles<br />
 
 --> **Hour Format (12/24):**
     * The application maintains an internal state for 12-hour or 24-hour mode (defaulting to 24)<br />
