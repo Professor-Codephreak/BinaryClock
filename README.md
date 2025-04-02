@@ -86,3 +86,101 @@ The binary clock should appear and start updating immediately.
 ## Customization
 
 The visual theme (colors) can be easily customized by modifying the CSS variables defined in the `:root` section at the top of `styled.css`.
+
+# Interactive 3D Binary Clock
+
+## Overview
+
+This project presents an interactive, web-based binary clock rendered within a draggable 3D interface. It utilizes vanilla JavaScript, HTML5, and CSS3 to display the current date and time using different binary formats, all wrapped in a retro terminal aesthetic. Users can rotate the clock face using mouse drag and toggle time display modes via unique binary-labeled buttons.
+
+---
+
+*(Placeholder: Consider adding a high-quality screenshot or GIF demonstrating the clock and its 3D rotation)*
+
+
+*(Placeholder: Add link if hosted online)*
+
+`[Live Demo](your-live-demo-link-here)`
+
+---
+
+## Features
+
+* **Real-Time Clock:** Updates every second to display the current time and date.
+* **Date Display:** Shows the current Year, Month, and Day in standard binary format, padded for consistency.
+* **Time Display:** Vertically stacks Hours, Minutes, and Seconds.
+* **Switchable Time Encoding:** Toggle between:
+    * **Standard Binary (Default):** Displays the full value of H, M, S in base-2 (e.g., 19:00 -> `10011`). Padding ensures consistent bit length (5 for 24hr, 4 for 12hr; 6 for M/S).
+    * **Binary-Coded Decimal (BCD):** Displays each decimal digit of H, M, S as a separate 4-bit binary group (e.g., 19:00 -> `0001 1001`).
+* **Switchable Hour Format:** Toggle between:
+    * **24-Hour Format (Default):** Displays hours from 00 to 23.
+    * **12-Hour Format:** Displays hours from 01 to 12.
+* **Dynamic Toggle Buttons:**
+    * The "BCD" button visually indicates the active time encoding mode (dim for Standard, bright/active for BCD).
+    * The 12/24 button dynamically displays the *target* mode ("12" or "24") using the currently active *encoding* (Standard Binary or BCD).
+* **Interactive 3D Rotation:** Click and drag the clock face or background to rotate the view in 3D space.
+* **Retro Terminal Aesthetic:** Uses a monospace font (`VT323`), green-on-black color scheme, and glow effects.
+* **Customizable Theme:** Colors can be easily modified using CSS Custom Properties (variables).
+* **Responsive Elements:** Basic responsiveness for usability on smaller screens.
+
+## How It Works
+
+### Date Display
+
+The Year, Month, and Day values are obtained from the system `Date` object. Each value is converted to its standard base-2 (binary) representation using `number.toString(2)` and then padded with leading zeros to a fixed length for consistent alignment:
+* Year: 11 bits
+* Month: 4 bits
+* Day: 5 bits
+
+### Time Display & Toggles
+
+1.  **Hour Format (12/24):**
+    * The application maintains an internal state for 12-hour or 24-hour mode (defaulting to 24).
+    * The raw hour (0-23) is fetched. If 12-hour mode is active, it's converted mathematically to the 1-12 range.
+    * The corresponding toggle button displays the *other* mode's value ("12" or "24") as its label.
+2.  **Time Encoding (Standard/BCD):**
+    * The application maintains a state for Standard Binary or BCD mode (defaulting to Standard).
+    * **Standard Binary:** The (potentially 12/24 adjusted) hour value (0-23 or 1-12) and the minute/second values (0-59) are converted to base-2 using `number.toString(2)` and padded to the appropriate bit length (5/4 for H, 6 for M/S).
+    * **BCD:** The 2-digit string representation of the (potentially adjusted) hour, minute, and second is processed. Each *individual decimal digit* is converted to its 4-bit BCD equivalent (e.g., '7' -> `0111`). The two 4-bit groups for each time component are displayed with a space.
+    * The "BCD" toggle button changes appearance (dim/bright) to reflect the active mode.
+    * The 12/24 button's *label format* (standard binary vs. BCD for "12"/"24") also updates based on the active time encoding mode.
+3.  **Updates:** JavaScript's `setInterval` function calls an `updateClock` routine every 1000ms to refresh the date and time display based on the current state of the two toggles.
+
+### 3D Interaction
+
+* CSS sets up a 3D perspective environment using the `perspective` property on a container element.
+* The clock face is wrapped in an element (`#interactive-cube`) with `transform-style: preserve-3d;`.
+* JavaScript (`motion.js`) listens for mouse drag events.
+* During a drag, it calculates the change in mouse position and updates the `rotateX` and `rotateY` CSS transform properties of `#interactive-cube` via inline styles, allowing smooth rotation.
+
+## File Structure
+
+.
+├── index.html         # HTML structure
+├── styled.css         # CSS styling (layout, theme, 3D)
+├── binaryclock.js     # Clock logic, date/time updates, toggle handlers
+└── motion.js          # 3D drag rotation handling
+
+
+## Setup
+
+1.  Ensure all four files (`index.html`, `styled.css`, `binaryclock.js`, `motion.js`) are located in the same directory.
+2.  Open the `index.html` file in a modern web browser that supports CSS 3D transforms (e.g., Chrome, Firefox, Edge, Safari).
+
+No build steps or external dependencies (other than the Google Font) are required.
+
+## Customization
+
+* **Theme:** Modify color variables (e.g., `--primary-color`, `--bg-color`) in the `:root` section of `styled.css`.
+* **3D:** Adjust the `perspective` value in `.showcase-container` (CSS) or the rotation `sensitivity` constant in `motion.js`.
+* **Initial View:** Change the `initialRotation` values in `motion.js`.
+* **Binary Padding:** Modify bit-length constants (e.g., `YEAR_BITS`) in `binaryclock.js` if different padding is desired.
+
+## Author
+
+* Gregory L. Magnusson
+
+## License
+
+* BANKON
+
