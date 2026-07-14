@@ -4,36 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Binary Clock 3d</title>
-    <meta name="description" content="An interactive 3D binary clock displaying date and time (switchable BCD/Standard Binary & 12/24 Hour) with a terminal aesthetic.">
+    <meta name="description" content="An interactive 3D binary clock widget (switchable BCD/Standard Binary & 12/24 Hour) with a terminal aesthetic. Drag to move, Shift-drag to rotate, corner grip to resize.">
     <meta name="author" content="Gregory L. Magnusson">
-    <link rel="stylesheet" href="styled.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link id="binary-clock-font-vt323" href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body {
+            background-color: #0a0a0a;
+            font-family: 'VT323', 'Courier New', monospace;
+            color: #005000;
+            overflow: hidden;
+        }
+        .hints {
+            position: fixed;
+            bottom: 12px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
-    <div class="showcase-container">
+    <p class="hints">drag to move &middot; shift-drag / right-drag to rotate &middot; corner grips: rotate (top-left) / resize (bottom-right) &middot; buttons toggle BCD &amp; 12/24</p>
 
-        <div id="interactive-cube">
-            <div class="container clock-face">
+    <script src="binary-clock.js"></script>
 
-                <div class="toggle-container">
-                     <button id="toggle-hour-mode-btn" title="Toggle 12/24 Hour Format">1100</button> <button id="toggle-mode-btn" title="Toggle BCD/Standard Time Display">BCD</button>
-                </div>
-
-                <div class="date-display">
-                    <div><span class="date-label">Y:</span><span class="binary-date" id="year-binary">Loading..</span></div>
-                    <div><span class="date-label">M:</span><span class="binary-date" id="month-binary">...</span></div>
-                    <div><span class="date-label">D:</span><span class="binary-date" id="day-binary">...</span></div>
-                </div>
-
-                <div class="binary-clock">
-                    <div class="time-section hours"><span class="label">H:</span><span class="binary-time" id="hours-binary">...</span></div>
-                    <div class="time-section minutes"><span class="label">M:</span><span class="binary-time" id="minutes-binary">...</span></div>
-                    <div class="time-section seconds"><span class="label">S:</span><span class="binary-time" id="seconds-binary">...</span></div>
-                </div>
-
-            </div> </div> </div><script src="binaryclock.js"></script>
-    <script src="motion.js"></script>
+    <binary-clock storage-key="main"></binary-clock>
+    <binary-clock storage-key="second" display-mode="bcd" hour-mode="12" x="40" y="40" scale="20"></binary-clock>
 </body>
 </html>
