@@ -187,12 +187,11 @@
             text-shadow: 0 0 0.193em var(--_glow);
         }
 
-        .time-section.seconds { align-items: center; }
         .seconds-bar {
-            flex: 1;
-            height: 0.45em;
-            border: 0.035em solid var(--_dim);
-            border-radius: 0.1em;
+            width: 100%;
+            height: 0.14em;
+            background-color: var(--_dim);
+            border-radius: 0.07em;
             overflow: hidden;
         }
         .seconds-fill {
@@ -286,7 +285,8 @@
                 <div class="binary-clock">
                     <div class="time-section hours"><span class="label">H:</span><span class="binary-time" id="hours-binary">...</span></div>
                     <div class="time-section minutes"><span class="label">M:</span><span class="binary-time" id="minutes-binary">...</span></div>
-                    <div class="time-section seconds"><span class="label">S:</span><div class="seconds-bar" id="seconds-bar" role="progressbar" aria-label="Seconds" aria-valuemin="0" aria-valuemax="59"><div class="seconds-fill" id="seconds-fill"></div></div></div>
+                    <div class="time-section seconds"><span class="label">S:</span><span class="binary-time" id="seconds-binary">...</span></div>
+                    <div class="seconds-bar" id="seconds-bar" role="progressbar" aria-label="Progress to the next minute" aria-valuemin="0" aria-valuemax="59"><div class="seconds-fill" id="seconds-fill"></div></div>
                 </div>
                 <div class="alarm-panel" id="alarm-panel" hidden>
                     <div class="alarm-row"><span class="label">A:</span><input id="alarm-time" type="time" aria-label="Alarm time"><button id="alarm-arm-btn" title="Arm/Disarm Alarm">ARM</button></div>
@@ -369,6 +369,7 @@
             this._dayEl = root.getElementById('day-binary');
             this._hoursEl = root.getElementById('hours-binary');
             this._minutesEl = root.getElementById('minutes-binary');
+            this._secondsEl = root.getElementById('seconds-binary');
             this._secondsBar = root.getElementById('seconds-bar');
             this._secondsFill = root.getElementById('seconds-fill');
             this._prevSeconds = -1;
@@ -1128,16 +1129,19 @@
                 if (this._displayMode === 'bcd') {
                     this._hoursEl.textContent = decimalToBCD(hoursStr[0]) + ' ' + decimalToBCD(hoursStr[1]);
                     this._minutesEl.textContent = decimalToBCD(minutesStr[0]) + ' ' + decimalToBCD(minutesStr[1]);
+                    this._secondsEl.textContent = decimalToBCD(secondsStr[0]) + ' ' + decimalToBCD(secondsStr[1]);
                 } else if (this._displayMode === 'time') {
                     const suffix = (this._hourMode === '12') ? (rawHours24 < 12 ? ' AM' : ' PM') : '';
                     this._hoursEl.textContent = hoursStr + suffix;
                     this._minutesEl.textContent = minutesStr;
+                    this._secondsEl.textContent = secondsStr;
                 } else {
                     this._hoursEl.textContent = displayHours.toString(2).padStart(hoursStdBits, '0');
                     this._minutesEl.textContent = parseInt(minutesStr, 10).toString(2).padStart(MIN_SEC_STD_BITS, '0');
+                    this._secondsEl.textContent = parseInt(secondsStr, 10).toString(2).padStart(MIN_SEC_STD_BITS, '0');
                 }
 
-                // 4. Seconds render as a progress bar sweeping across the minute
+                // 4. Thin strip below the time rows sweeps toward the next minute
                 this._updateSecondsBar(parseInt(secondsStr, 10));
 
                 // 5. Alarm & countdown (active in every display mode)

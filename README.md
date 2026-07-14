@@ -131,7 +131,7 @@ Unlike standard binary which converts the entire number (e.g., decimal 23 -> bin
     * **M:** Decimal '1' -> BCD `0001`, Decimal '5' -> BCD `0101`. Display: `M: 0001 0101`
     * **S:** Decimal '4' -> BCD `0100`, Decimal '2' -> BCD `0010`. Display: `S: 0100 0010`
 ```
-This BCD representation correctly handles the full range of hours (00-23) and minutes (00-59) by encoding each constituent decimal digit. Seconds are shown as a progress bar sweeping across the minute rather than as digits.
+This BCD representation correctly handles the full range of hours (00-23), minutes (00-59), and seconds (00-59) by encoding each constituent decimal digit.
 
 ## How the Display Works
 
@@ -154,8 +154,8 @@ The `DATE` button toggles a human-readable format instead — `Y: 2026  M: JUL  
 --> **Time Display (Binary/BCD/Decimal):**<br />
     * **Standard Binary (default):** the full H/M/S values are converted to base-2 and padded (5 bits for 24hr hours, 4 bits for 12hr hours, 6 bits for minutes/seconds)<br />
     * **BCD:** each decimal digit is converted to its own 4-bit group, displayed with a space between digits<br />
-    * **Decimal (`DEC`):** plain digital readout of H/M; in 12-hour mode the hours row carries an AM/PM suffix<br />
-    * **Seconds:** in every mode the S row renders as a glowing progress bar that sweeps continuously across the minute (a 1s linear fill between updates) and snaps back at the minute rollover; the underlying value is exposed via `aria-valuenow`<br />
+    * **Decimal (`DEC`):** plain digital readout of H/M/S; in 12-hour mode the hours row carries an AM/PM suffix<br />
+    * **Minute strip:** a thin glowing strip below the time rows sweeps continuously toward the next minute (1s linear fill between updates, snapping back at the rollover); the current second is exposed via `aria-valuenow`<br />
     * The mode button cycles `BIN` → `BCD` → `DEC`, glowing bright whenever a non-default mode is active<br />
 --> **Updates:** a self-aligning timer fires just after every second boundary, so no seconds are skipped and there is no drift. The display refreshes immediately when a hidden tab becomes visible again.
 
