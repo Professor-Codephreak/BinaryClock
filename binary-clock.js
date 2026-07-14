@@ -30,6 +30,8 @@
 
     const DATE_MODES = ['binary', 'human'];
     const THEMES = ['dark', 'light'];
+    const ALARM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+    const RING_LIMIT_MS = 60000; // auto-dismiss a ringing alarm after a minute
     const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
     const DEFAULT_BASE = 28.8;   // px; the old 1.8rem at a 16px root
@@ -201,6 +203,42 @@
             transition: width 1s linear;
         }
 
+        .alarm-panel {
+            margin-top: 0.52em;
+            padding-top: 0.4em;
+            border-top: 0.035em dashed var(--_dim);
+            display: flex;
+            flex-direction: column;
+            gap: 0.3em;
+        }
+        .alarm-panel[hidden] { display: none; }
+        .alarm-row { display: flex; align-items: center; gap: 0.347em; }
+        .alarm-row input {
+            flex: 1;
+            min-width: 0;
+            background: transparent;
+            border: 0.058em solid var(--_dim);
+            border-radius: 0.174em;
+            color: var(--_c);
+            font-family: inherit;
+            font-size: 0.65em;
+            padding: 0.15em 0.4em;
+            letter-spacing: 0.06em;
+            color-scheme: dark;
+        }
+        :host(.light) .alarm-row input { color-scheme: light; }
+        .alarm-row input:focus { outline: none; border-color: var(--_c); box-shadow: 0 0 0.29em var(--_glow); }
+        .alarm-row input::placeholder { color: var(--_dim); }
+
+        @keyframes bc-ring {
+            0%, 100% { box-shadow: 0 0 0.52em var(--_glow); }
+            50% { box-shadow: 0 0 1.6em var(--_glow); }
+        }
+        :host(.ringing) .clock-face { animation: bc-ring 0.6s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+            :host(.ringing) .clock-face { animation: none; }
+        }
+
         .handle {
             position: absolute;
             width: 0.9em;
@@ -234,6 +272,7 @@
         <div class="cube">
             <div class="clock-face">
                 <div class="toggle-container">
+                    <button id="toggle-alarm-btn" title="Show/Hide Alarm Panel">ALM</button>
                     <button id="toggle-theme-btn" title="Toggle Dark/Light Theme">LHT</button>
                     <button id="toggle-date-btn" title="Toggle Binary / Human-Readable Date">DATE</button>
                     <button id="toggle-hour-mode-btn" title="Toggle 12/24 Hour Format">1100</button>
@@ -249,6 +288,10 @@
                     <div class="time-section minutes"><span class="label">M:</span><span class="binary-time" id="minutes-binary">...</span></div>
                     <div class="time-section seconds"><span class="label">S:</span><div class="seconds-bar" id="seconds-bar" role="progressbar" aria-label="Seconds" aria-valuemin="0" aria-valuemax="59"><div class="seconds-fill" id="seconds-fill"></div></div></div>
                 </div>
+                <div class="alarm-panel" id="alarm-panel" hidden>
+                    <div class="alarm-row"><span class="label">A:</span><input id="alarm-time" type="time" aria-label="Alarm time"><button id="alarm-arm-btn" title="Arm/Disarm Alarm">ARM</button></div>
+                    <div class="alarm-row"><span class="label">T:</span><input id="timer-input" type="text" inputmode="numeric" placeholder="MM:SS" aria-label="Countdown duration" title="Duration as MM:SS, HH:MM:SS, or minutes"><button id="timer-arm-btn" title="Start/Stop Countdown">ARM</button></div>
+                </div>
             </div>
         </div>
         <div class="handle rotate" title="Drag to rotate (or Shift-drag / right-drag anywhere)"></div>
@@ -263,6 +306,28 @@
         sharedSheet = null; // fall back to a <style> tag per instance
     }
 
+    /** Accepts "MM:SS", "HH:MM:SS", or a bare number of minutes; returns seconds or null. */
+    function parseDuration(str) {
+        const s = String(str).trim();
+        if (!s) return null;
+        if (/^\d+$/.test(s)) {
+            const mins = parseInt(s, 10);
+            return (mins > 0 && mins <= 5940) ? mins * 60 : null;
+        }
+        const m = s.match(/^(?:(\d{1,2}):)?([0-5]?\d):([0-5]\d)$/);
+        if (!m) return null;
+        const total = (m[1] ? parseInt(m[1], 10) * 3600 : 0) + parseInt(m[2], 10) * 60 + parseInt(m[3], 10);
+        return total > 0 ? total : null;
+    }
+
+    function formatDuration(sec) {
+        sec = Math.max(0, Math.round(sec));
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = sec % 60;
+        return (h ? `${h}:${String(m).padStart(2, '0')}` : String(m)) + ':' + String(s).padStart(2, '0');
+    }
+
     function decimalToBCD(digit) {
         const num = parseInt(digit, 10);
         if (isNaN(num) || num < 0 || num > 9) {
@@ -273,7 +338,7 @@
     }
 
     class BinaryClockElement extends HTMLElement {
-        static get observedAttributes() { return ['display-mode', 'hour-mode', 'date-mode', 'theme']; }
+        static get observedAttributes() { return ['display-mode', 'hour-mode', 'date-mode', 'theme', 'alarm']; }
 
         constructor() {
             super();
@@ -300,6 +365,12 @@
             this._toggleHourBtn = root.getElementById('toggle-hour-mode-btn');
             this._toggleDateBtn = root.getElementById('toggle-date-btn');
             this._toggleThemeBtn = root.getElementById('toggle-theme-btn');
+            this._toggleAlarmBtn = root.getElementById('toggle-alarm-btn');
+            this._alarmPanel = root.getElementById('alarm-panel');
+            this._alarmInput = root.getElementById('alarm-time');
+            this._alarmArmBtn = root.getElementById('alarm-arm-btn');
+            this._timerInput = root.getElementById('timer-input');
+            this._timerArmBtn = root.getElementById('timer-arm-btn');
             this._resizeHandle = root.querySelector('.handle.resize');
             this._rotateHandle = root.querySelector('.handle.rotate');
 
@@ -307,6 +378,15 @@
             this._hourMode = '24';        // '12' or '24'
             this._dateMode = 'binary';    // 'binary' or 'human'
             this._theme = 'dark';         // 'dark' or 'light'
+            this._alarm = null;           // 'HH:MM' or null
+            this._alarmArmed = false;
+            this._timerEnd = null;        // epoch ms when the countdown fires, or null
+            this._timerDuration = null;   // last armed duration in seconds
+            this._ringing = false;
+            this._lastTriggeredMinute = null;
+            this._ringTimeout = null;
+            this._beepTimer = null;
+            this._audioCtx = null;
             this._rot = { ...INITIAL_ROTATION };
             this._base = DEFAULT_BASE;
             this._pos = { x: 0, y: 0 };
@@ -333,6 +413,17 @@
             this._toggleThemeBtn.addEventListener('click', () => {
                 this._setTheme(this._theme === 'dark' ? 'light' : 'dark');
             });
+            this._toggleAlarmBtn.addEventListener('click', () => {
+                this._alarmPanel.hidden = !this._alarmPanel.hidden;
+            });
+            this._alarmArmBtn.addEventListener('click', () => {
+                if (this._alarmArmed) this._disarmAlarm();
+                else this._armAlarm(this._alarmInput.value);
+            });
+            this._timerArmBtn.addEventListener('click', () => {
+                if (this._timerEnd !== null) this._stopTimer();
+                else this._startTimer(parseDuration(this._timerInput.value));
+            });
 
             this.addEventListener('pointerdown', (e) => this._onPointerDown(e));
             this.addEventListener('pointermove', (e) => this._onPointerMove(e));
@@ -354,6 +445,9 @@
                 this._updateHourButtonText();
                 this._updateDateButtonAppearance();
                 this._applyTheme();
+                if (this._alarm) this._alarmInput.value = this._alarm;
+                if (this._timerDuration && this._timerEnd === null) this._timerInput.value = formatDuration(this._timerDuration);
+                this._updateAlarmUI();
                 this._updateClock();
                 this._applyBase();
                 this._applyRotation();
@@ -367,6 +461,7 @@
         disconnectedCallback() {
             clearTimeout(this._timer);
             this._timer = null;
+            this._dismissAlarm(); // silence audio/flash if removed while ringing
             window.removeEventListener('resize', this._onWindowResize);
             document.removeEventListener('visibilitychange', this._onVisibilityChange);
             if (this._saveTimer) this._save(); // flush pending debounced save
@@ -378,6 +473,10 @@
             else if (name === 'hour-mode') this._setHourMode(newValue);
             else if (name === 'date-mode') this._setDateMode(newValue);
             else if (name === 'theme') this._setTheme(newValue);
+            else if (name === 'alarm') {
+                if (newValue === null || newValue === '') this._disarmAlarm();
+                else this._armAlarm(newValue);
+            }
         }
 
         // --- Public API ---
@@ -391,6 +490,24 @@
         get theme() { return this._theme; }
         set theme(v) { this._setTheme(String(v)); }
         get scale() { return this._base; }
+
+        get alarm() { return this._alarm; }
+        set alarm(v) {
+            if (v === null || v === '') this._disarmAlarm();
+            else this._armAlarm(String(v));
+        }
+        get alarmArmed() { return this._alarmArmed; }
+
+        /** Remaining countdown in whole seconds, or null when no timer is running. */
+        get timerRemaining() {
+            return this._timerEnd === null ? null : Math.max(0, Math.round((this._timerEnd - Date.now()) / 1000));
+        }
+        /** Set to seconds, "MM:SS"/"HH:MM:SS", or bare minutes to start a countdown; null stops it. */
+        set timer(v) {
+            if (v === null || v === '') this._stopTimer();
+            else this._startTimer(typeof v === 'number' ? Math.round(v) : parseDuration(v));
+        }
+        get timer() { return this.timerRemaining; }
 
         /** Restore default rotation and scale, and re-center in the viewport. */
         resetView() {
@@ -429,6 +546,18 @@
             if (DATE_MODES.includes(date)) this._dateMode = date;
             const theme = saved?.theme ?? this.getAttribute('theme');
             if (THEMES.includes(theme)) this._theme = theme;
+
+            const alarm = saved ? saved.alarm : this.getAttribute('alarm');
+            if (typeof alarm === 'string' && ALARM_RE.test(alarm)) {
+                this._alarm = alarm;
+                this._alarmArmed = saved ? saved.alarmArmed === true : true; // attribute arms by default
+            }
+            if (Number.isFinite(saved?.timerDuration) && saved.timerDuration > 0) {
+                this._timerDuration = saved.timerDuration;
+            }
+            if (Number.isFinite(saved?.timerEnd) && saved.timerEnd > Date.now()) {
+                this._timerEnd = saved.timerEnd; // resume a countdown still in the future
+            }
 
             const base = saved?.base ?? attrScale;
             if (Number.isFinite(base)) this._base = Math.min(MAX_BASE, Math.max(MIN_BASE, base));
@@ -469,7 +598,11 @@
                     displayMode: this._displayMode,
                     hourMode: this._hourMode,
                     dateMode: this._dateMode,
-                    theme: this._theme
+                    theme: this._theme,
+                    alarm: this._alarm,
+                    alarmArmed: this._alarmArmed,
+                    timerEnd: this._timerEnd,
+                    timerDuration: this._timerDuration
                 }));
             } catch (e) { /* storage full or unavailable */ }
         }
@@ -550,11 +683,12 @@
         // --- Drag / rotate / resize state machine ---
 
         _onPointerDown(e) {
+            if (this._ringing) { this._dismissAlarm(); return; } // any tap silences the alarm
             if (this._drag) return;
             if (e.button !== 0 && e.button !== 2) return;
             const path = e.composedPath();
-            // Buttons keep their native click behavior; never start a drag from them.
-            if (path.some((n) => n.tagName === 'BUTTON')) return;
+            // Buttons/inputs keep their native behavior; never start a drag from them.
+            if (path.some((n) => n.tagName === 'BUTTON' || n.tagName === 'INPUT')) return;
 
             let mode;
             if (path.includes(this._resizeHandle)) mode = 'resize';
@@ -673,11 +807,152 @@
             this._toggleThemeBtn.classList.toggle('active', this._theme === 'light');
         }
 
+        // --- Alarm & countdown timer ---
+
+        _armAlarm(value) {
+            if (typeof value !== 'string' || !ALARM_RE.test(value)) return;
+            this._alarm = value;
+            this._alarmArmed = true;
+            this._lastTriggeredMinute = null;
+            this._alarmInput.value = value;
+            this._updateAlarmUI();
+            this._save();
+            this._emitChange();
+        }
+
+        _disarmAlarm() {
+            if (!this._alarmArmed) return;
+            this._alarmArmed = false;
+            this._updateAlarmUI();
+            this._save();
+            this._emitChange();
+        }
+
+        _startTimer(seconds) {
+            if (!Number.isFinite(seconds) || seconds <= 0) return;
+            this._timerDuration = seconds;
+            this._timerEnd = Date.now() + seconds * 1000;
+            this._updateAlarmUI();
+            this._save();
+            this._emitChange();
+        }
+
+        _stopTimer() {
+            if (this._timerEnd === null) return;
+            this._timerEnd = null;
+            this._timerInput.value = this._timerDuration ? formatDuration(this._timerDuration) : '';
+            this._updateAlarmUI();
+            this._save();
+            this._emitChange();
+        }
+
+        /** Reflects armed/running/ringing state onto the panel and the ALM header button. */
+        _updateAlarmUI() {
+            const timerRunning = this._timerEnd !== null;
+            this._toggleAlarmBtn.classList.toggle('active', this._alarmArmed || timerRunning || this._ringing);
+            this._alarmArmBtn.textContent = this._alarmArmed ? 'OFF' : 'ARM';
+            this._alarmArmBtn.classList.toggle('active', this._alarmArmed);
+            this._timerArmBtn.textContent = timerRunning ? 'OFF' : 'ARM';
+            this._timerArmBtn.classList.toggle('active', timerRunning);
+            this._timerInput.readOnly = timerRunning;
+        }
+
+        /** Called every tick; fires the alarm/timer and keeps the countdown display live. */
+        _checkAlarm(now) {
+            if (this._timerEnd !== null) {
+                const remaining = this._timerEnd - now.getTime();
+                if (remaining <= 0) {
+                    this._timerEnd = null;
+                    this._timerInput.value = this._timerDuration ? formatDuration(this._timerDuration) : '';
+                    this._startRinging('timer');
+                } else {
+                    this._timerInput.value = formatDuration(remaining / 1000);
+                }
+            }
+            if (this._alarmArmed && !this._ringing) {
+                const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+                if (hhmm === this._alarm && hhmm !== this._lastTriggeredMinute) {
+                    this._lastTriggeredMinute = hhmm;
+                    this._alarmArmed = false; // one-shot
+                    this._startRinging('alarm');
+                }
+            }
+        }
+
+        _startRinging(kind) {
+            this._ringing = true;
+            this.classList.add('ringing');
+            this._updateAlarmUI();
+            this._startBeeps();
+            clearTimeout(this._ringTimeout);
+            this._ringTimeout = setTimeout(() => this._dismissAlarm(), RING_LIMIT_MS);
+            this._save();
+            this.dispatchEvent(new CustomEvent('binary-clock-alarm', {
+                bubbles: true,
+                composed: true,
+                detail: { kind, alarm: this._alarm, timerDuration: this._timerDuration }
+            }));
+        }
+
+        /** Stops a ringing alarm/timer (also bound to any tap on the widget while ringing). */
+        dismissAlarm() { this._dismissAlarm(); }
+
+        _dismissAlarm() {
+            if (!this._ringing) return;
+            this._ringing = false;
+            this.classList.remove('ringing');
+            clearTimeout(this._ringTimeout);
+            this._ringTimeout = null;
+            this._stopBeeps();
+            this._updateAlarmUI();
+            this._save();
+        }
+
+        _startBeeps() {
+            try {
+                if (!this._audioCtx) this._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this._audioCtx.state === 'suspended') this._audioCtx.resume();
+                const beep = () => {
+                    try {
+                        const ctx = this._audioCtx;
+                        const t = ctx.currentTime;
+                        for (const off of [0, 0.18]) { // terminal-style double beep
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'square';
+                            osc.frequency.value = 880;
+                            gain.gain.setValueAtTime(0.0001, t + off);
+                            gain.gain.exponentialRampToValueAtTime(0.12, t + off + 0.01);
+                            gain.gain.exponentialRampToValueAtTime(0.0001, t + off + 0.12);
+                            osc.connect(gain).connect(ctx.destination);
+                            osc.start(t + off);
+                            osc.stop(t + off + 0.15);
+                        }
+                    } catch (e) { /* keep flashing even if audio fails */ }
+                };
+                beep();
+                this._beepTimer = setInterval(beep, 1000);
+            } catch (e) { /* no audio available: visual ring only */ }
+        }
+
+        _stopBeeps() {
+            clearInterval(this._beepTimer);
+            this._beepTimer = null;
+        }
+
         _emitChange() {
             this.dispatchEvent(new CustomEvent('binary-clock-change', {
                 bubbles: true,
                 composed: true,
-                detail: { displayMode: this._displayMode, hourMode: this._hourMode, dateMode: this._dateMode, theme: this._theme }
+                detail: {
+                    displayMode: this._displayMode,
+                    hourMode: this._hourMode,
+                    dateMode: this._dateMode,
+                    theme: this._theme,
+                    alarm: this._alarm,
+                    alarmArmed: this._alarmArmed,
+                    timerRunning: this._timerEnd !== null
+                }
             }));
         }
 
@@ -780,6 +1055,9 @@
 
                 // 4. Seconds render as a progress bar sweeping across the minute
                 this._updateSecondsBar(parseInt(secondsStr, 10));
+
+                // 5. Alarm & countdown (active in every display mode)
+                this._checkAlarm(now);
             } catch (error) {
                 console.error('Error during clock update:', error);
             }

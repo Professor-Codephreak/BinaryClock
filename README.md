@@ -23,8 +23,18 @@ That's it — no build step, no dependencies. The component renders in shadow DO
 | Hour-format button | Toggle 12/24 hour format (label shows the target mode in the active encoding) |
 | `DATE` button | Toggle the date row between binary (default) and human-readable (`Y: 2026 M: JUL D: 13`) |
 | `LHT`/`DRK` button | Toggle dark/light theme (label shows the theme it switches to) |
+| `ALM` button | Show/hide the alarm & countdown panel (glows while an alarm is armed, a countdown is running, or the clock is ringing) |
 
 Corner grips fade in on hover (faintly visible on touch devices). A press that moves less than 5px is treated as a click, so the toggle buttons never fight with dragging.
+
+## Alarm & Countdown Timer
+
+The `ALM` button unfolds a panel with two rows, available in every display mode (binary/BCD/decimal, 12/24, either theme):
+
+* **`A:` alarm** — pick a clock time (native time input) and press `ARM`. The button flips to `OFF` and glows; at the set minute the face pulses and emits terminal-style double beeps. One-shot: it disarms after firing.
+* **`T:` countdown** — enter a duration as `MM:SS`, `HH:MM:SS`, or a bare number of minutes, then `ARM`. The input becomes a live countdown display; at zero the same ring fires.
+
+Tap or click anywhere on the widget to silence a ringing alarm (it also auto-silences after 60 seconds). Armed alarms and running countdowns persist across reloads — a countdown resumes if its deadline is still in the future. Audio uses the Web Audio API (no assets); if the browser blocks sound before any interaction, the visual ring still fires.
 
 ## Attributes
 
@@ -37,6 +47,7 @@ All attributes are optional and act as **first-run defaults**; saved state wins 
 | `hour-mode` | `24` \| `12` | Initial hour format (default `24`) |
 | `date-mode` | `binary` \| `human` | Initial date format (default `binary`) |
 | `theme` | `dark` \| `light` | Initial theme (default `dark`: green-on-black; `light`: deep green on a pale face) |
+| `alarm` | `HH:MM` | Set and arm an alarm (24h clock time) |
 | `x`, `y` | px numbers | Initial position (default: centered in viewport) |
 | `scale` | px number | Initial base font size, 12–64 (default 28.8) |
 | `no-persist` | boolean | Disable localStorage entirely |
@@ -53,6 +64,12 @@ clock.displayMode = 'bcd';   // or 'binary' / 'time'
 clock.hourMode = '12';       // or '24'
 clock.dateMode = 'human';    // or 'binary'
 clock.theme = 'light';       // or 'dark'
+clock.alarm = '07:30';       // set + arm an alarm; null disarms
+clock.alarmArmed;            // read-only armed state
+clock.timer = '5:00';        // start a countdown (seconds, 'MM:SS', 'HH:MM:SS', or minutes); null stops
+clock.timerRemaining;        // seconds left, or null
+clock.dismissAlarm();        // silence a ringing alarm/timer
+clock.addEventListener('binary-clock-alarm', (e) => console.log(e.detail)); // {kind: 'alarm'|'timer', ...}
 clock.scale;                 // read-only current base font size (px)
 clock.resetView();           // default rotation + scale, re-center
 clock.clearSavedState();     // drop this instance's localStorage entry
