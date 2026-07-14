@@ -18,11 +18,15 @@
     const HOURS_STD_BITS_12 = 4;
     const MIN_SEC_STD_BITS = 6;
 
-    // --- Binary/BCD Representations for Button Labels ---
+    // --- Binary/BCD/Decimal Representations for Button Labels ---
     const HOUR_MODE_VALUES = {
-        '12': { std: '1100',  bcd: '0001 0010' }, // Represents "12"
-        '24': { std: '11000', bcd: '0010 0100' }  // Represents "24"
+        '12': { std: '1100',  bcd: '0001 0010', dec: '12' }, // Represents "12"
+        '24': { std: '11000', bcd: '0010 0100', dec: '24' }  // Represents "24"
     };
+
+    // Display modes cycle in this order; 'binary' is the default.
+    const DISPLAY_MODES = ['binary', 'bcd', 'time'];
+    const DISPLAY_MODE_LABELS = { binary: 'BIN', bcd: 'BCD', time: 'DEC' };
 
     const DEFAULT_BASE = 28.8;   // px; the old 1.8rem at a 16px root
     const MIN_BASE = 12;
@@ -203,7 +207,7 @@
             <div class="clock-face">
                 <div class="toggle-container">
                     <button id="toggle-hour-mode-btn" title="Toggle 12/24 Hour Format">1100</button>
-                    <button id="toggle-mode-btn" title="Toggle BCD/Standard Time Display">BCD</button>
+                    <button id="toggle-mode-btn" title="Cycle Time Display: Binary / BCD / Decimal">BIN</button>
                 </div>
                 <div class="date-display">
                     <div><span class="date-label">Y:</span><span class="binary-date" id="year-binary">Loading..</span></div>
@@ -281,7 +285,8 @@
             this._onVisibilityChange = this._onVisibilityChange.bind(this);
 
             this._toggleBcdBtn.addEventListener('click', () => {
-                this._setDisplayMode(this._displayMode === 'bcd' ? 'binary' : 'bcd');
+                const next = (DISPLAY_MODES.indexOf(this._displayMode) + 1) % DISPLAY_MODES.length;
+                this._setDisplayMode(DISPLAY_MODES[next]);
             });
             this._toggleHourBtn.addEventListener('click', () => {
                 this._setHourMode(this._hourMode === '24' ? '12' : '24');
@@ -367,7 +372,7 @@
             const attrY = parseFloat(this.getAttribute('y'));
 
             const mode = saved?.displayMode ?? attrMode;
-            if (mode === 'bcd' || mode === 'binary') this._displayMode = mode;
+            if (DISPLAY_MODES.includes(mode)) this._displayMode = mode;
             const hour = saved?.hourMode ?? attrHour;
             if (hour === '12' || hour === '24') this._hourMode = hour;
 
@@ -570,7 +575,7 @@
         // --- Mode toggles ---
 
         _setDisplayMode(mode) {
-            if ((mode !== 'bcd' && mode !== 'binary') || mode === this._displayMode) return;
+            if (!DISPLAY_MODES.includes(mode) || mode === this._displayMode) return;
             this._displayMode = mode;
             this._updateBcdButtonAppearance();
             this._updateHourButtonText();
@@ -596,16 +601,18 @@
             }));
         }
 
-        /** Updates the BCD toggle button's active appearance. */
+        /** Updates the display-mode button's label and active appearance. */
         _updateBcdButtonAppearance() {
-            this._toggleBcdBtn.classList.toggle('active', this._displayMode === 'bcd');
+            this._toggleBcdBtn.textContent = DISPLAY_MODE_LABELS[this._displayMode];
+            this._toggleBcdBtn.classList.toggle('active', this._displayMode !== 'binary');
         }
 
         /** Updates the 12/24 toggle button's text based on BOTH hourMode and displayMode. */
         _updateHourButtonText() {
             // The button shows the mode it will switch TO, in the active encoding.
             const targetModeValue = (this._hourMode === '24') ? '12' : '24';
-            const formatType = (this._displayMode === 'bcd') ? 'bcd' : 'std';
+            const formatType = (this._displayMode === 'bcd') ? 'bcd'
+                : (this._displayMode === 'time') ? 'dec' : 'std';
             this._toggleHourBtn.textContent = HOUR_MODE_VALUES[targetModeValue][formatType];
         }
 
@@ -649,11 +656,16 @@
                 const minutesStr = String(now.getMinutes()).padStart(2, '0');
                 const secondsStr = String(now.getSeconds()).padStart(2, '0');
 
-                // 3. Update Time Display (Based on displayMode BCD/Standard)
+                // 3. Update Time Display (Based on displayMode Binary/BCD/Decimal)
                 if (this._displayMode === 'bcd') {
                     this._hoursEl.textContent = decimalToBCD(hoursStr[0]) + ' ' + decimalToBCD(hoursStr[1]);
                     this._minutesEl.textContent = decimalToBCD(minutesStr[0]) + ' ' + decimalToBCD(minutesStr[1]);
                     this._secondsEl.textContent = decimalToBCD(secondsStr[0]) + ' ' + decimalToBCD(secondsStr[1]);
+                } else if (this._displayMode === 'time') {
+                    const suffix = (this._hourMode === '12') ? (rawHours24 < 12 ? ' AM' : ' PM') : '';
+                    this._hoursEl.textContent = hoursStr + suffix;
+                    this._minutesEl.textContent = minutesStr;
+                    this._secondsEl.textContent = secondsStr;
                 } else {
                     this._hoursEl.textContent = displayHours.toString(2).padStart(hoursStdBits, '0');
                     this._minutesEl.textContent = parseInt(minutesStr, 10).toString(2).padStart(MIN_SEC_STD_BITS, '0');

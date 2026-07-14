@@ -19,8 +19,8 @@ That's it — no build step, no dependencies. The component renders in shadow DO
 | Shift-drag or right-drag | **Rotate** in 3D (X clamped to ±90°) |
 | Top-left corner grip (dotted) | **Rotate** — touch-friendly |
 | Bottom-right corner grip (solid) | **Resize** — proportional scaling of the whole widget |
-| `BCD` button | Toggle BCD / Standard Binary time encoding |
-| Binary-labeled button | Toggle 12/24 hour format |
+| `BIN`/`BCD`/`DEC` button | Cycle the time display: Standard Binary → BCD → Decimal (readable digital time) |
+| Hour-format button | Toggle 12/24 hour format (label shows the target mode in the active encoding) |
 
 Corner grips fade in on hover (faintly visible on touch devices). A press that moves less than 5px is treated as a click, so the toggle buttons never fight with dragging.
 
@@ -31,7 +31,7 @@ All attributes are optional and act as **first-run defaults**; saved state wins 
 | Attribute | Values | Description |
 | :--- | :--- | :--- |
 | `storage-key` | any string | localStorage namespace (`binary-clock:v1:<key>`). Set explicit keys when using multiple instances. |
-| `display-mode` | `binary` \| `bcd` | Initial time encoding (default `binary`) |
+| `display-mode` | `binary` \| `bcd` \| `time` | Initial time display (default `binary`; `time` = decimal digital readout) |
 | `hour-mode` | `24` \| `12` | Initial hour format (default `24`) |
 | `x`, `y` | px numbers | Initial position (default: centered in viewport) |
 | `scale` | px number | Initial base font size, 12–64 (default 28.8) |
@@ -45,7 +45,7 @@ All attributes are optional and act as **first-run defaults**; saved state wins 
 
 ```js
 const clock = document.querySelector('binary-clock');
-clock.displayMode = 'bcd';   // or 'binary'
+clock.displayMode = 'bcd';   // or 'binary' / 'time'
 clock.hourMode = '12';       // or '24'
 clock.scale;                 // read-only current base font size (px)
 clock.resetView();           // default rotation + scale, re-center
@@ -120,10 +120,11 @@ The Year, Month, and Day values are shown in standard binary, padded to fixed le
     * Internal state defaults to 24-hour mode<br />
     * In 12-hour mode the raw hour (0-23) is converted to the 1-12 range<br />
     * The toggle button displays the *other* mode's value ("12" or "24") as its label, rendered in the currently active encoding (e.g. `1100` in standard binary, `0001 0010` in BCD)<br />
---> **Time Encoding (Standard/BCD):**<br />
+--> **Time Display (Binary/BCD/Decimal):**<br />
     * **Standard Binary (default):** the full H/M/S values are converted to base-2 and padded (5 bits for 24hr hours, 4 bits for 12hr hours, 6 bits for minutes/seconds)<br />
     * **BCD:** each decimal digit is converted to its own 4-bit group, displayed with a space between digits<br />
-    * The "BCD" toggle button changes appearance (dim/bright) to reflect the active mode<br />
+    * **Decimal (`DEC`):** plain digital readout of H/M/S; in 12-hour mode the hours row carries an AM/PM suffix<br />
+    * The mode button cycles `BIN` → `BCD` → `DEC`, glowing bright whenever a non-default mode is active<br />
 --> **Updates:** a self-aligning timer fires just after every second boundary, so no seconds are skipped and there is no drift. The display refreshes immediately when a hidden tab becomes visible again.
 
 ### 3D Interaction
