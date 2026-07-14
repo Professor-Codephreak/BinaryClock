@@ -291,6 +291,7 @@
                 <div class="alarm-panel" id="alarm-panel" hidden>
                     <div class="alarm-row"><span class="label">A:</span><input id="alarm-time" type="time" aria-label="Alarm time"><button id="alarm-arm-btn" title="Arm/Disarm Alarm">ARM</button></div>
                     <div class="alarm-row"><span class="label">T:</span><input id="timer-input" type="text" inputmode="numeric" placeholder="MM:SS" aria-label="Countdown duration" title="Duration as MM:SS, HH:MM:SS, or minutes"><button id="timer-arm-btn" title="Start/Stop Countdown">ARM</button></div>
+                    <div class="alarm-row"><span class="label">W:</span><input id="stopwatch-display" readonly value="0:00.0" aria-label="Stopwatch"><button id="stopwatch-go-btn" title="Start/Stop Stopwatch">GO</button><button id="stopwatch-reset-btn" title="Reset Stopwatch">RST</button></div>
                 </div>
             </div>
         </div>
@@ -326,6 +327,16 @@
         const m = Math.floor((sec % 3600) / 60);
         const s = sec % 60;
         return (h ? `${h}:${String(m).padStart(2, '0')}` : String(m)) + ':' + String(s).padStart(2, '0');
+    }
+
+    /** m:ss.t (or h:mm:ss.t past an hour) from elapsed milliseconds. */
+    function formatStopwatch(ms) {
+        const tenths = Math.floor(ms / 100) % 10;
+        const sec = Math.floor(ms / 1000);
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = sec % 60;
+        return (h ? `${h}:${String(m).padStart(2, '0')}` : String(m)) + ':' + String(s).padStart(2, '0') + '.' + tenths;
     }
 
     function decimalToBCD(digit) {
@@ -371,6 +382,9 @@
             this._alarmArmBtn = root.getElementById('alarm-arm-btn');
             this._timerInput = root.getElementById('timer-input');
             this._timerArmBtn = root.getElementById('timer-arm-btn');
+            this._swDisplay = root.getElementById('stopwatch-display');
+            this._swGoBtn = root.getElementById('stopwatch-go-btn');
+            this._swResetBtn = root.getElementById('stopwatch-reset-btn');
             this._resizeHandle = root.querySelector('.handle.resize');
             this._rotateHandle = root.querySelector('.handle.rotate');
 
@@ -382,6 +396,9 @@
             this._alarmArmed = false;
             this._timerEnd = null;        // epoch ms when the countdown fires, or null
             this._timerDuration = null;   // last armed duration in seconds
+            this._swElapsed = 0;          // accumulated stopwatch ms while stopped
+            this._swStart = null;         // epoch ms of the current run, or null when stopped
+            this._swTimer = null;         // 100ms display-refresh interval while running
             this._ringing = false;
             this._lastTriggeredMinute = null;
             this._ringTimeout = null;
@@ -424,6 +441,11 @@
                 if (this._timerEnd !== null) this._stopTimer();
                 else this._startTimer(parseDuration(this._timerInput.value));
             });
+            this._swGoBtn.addEventListener('click', () => {
+                if (this._swStart !== null) this.stopStopwatch();
+                else this.startStopwatch();
+            });
+            this._swResetBtn.addEventListener('click', () => this.resetStopwatch());
 
             this.addEventListener('pointerdown', (e) => this._onPointerDown(e));
             this.addEventListener('pointermove', (e) => this._onPointerMove(e));
@@ -456,12 +478,15 @@
             window.addEventListener('resize', this._onWindowResize);
             document.addEventListener('visibilitychange', this._onVisibilityChange);
             this._tick();
+            this._updateStopwatchUI(); // restarts the 100ms refresh if running (also after re-append)
         }
 
         disconnectedCallback() {
             clearTimeout(this._timer);
             this._timer = null;
             this._dismissAlarm(); // silence audio/flash if removed while ringing
+            clearInterval(this._swTimer); // stopwatch state survives; only the display refresh stops
+            this._swTimer = null;
             window.removeEventListener('resize', this._onWindowResize);
             document.removeEventListener('visibilitychange', this._onVisibilityChange);
             if (this._saveTimer) this._save(); // flush pending debounced save
@@ -558,6 +583,12 @@
             if (Number.isFinite(saved?.timerEnd) && saved.timerEnd > Date.now()) {
                 this._timerEnd = saved.timerEnd; // resume a countdown still in the future
             }
+            if (Number.isFinite(saved?.swElapsed) && saved.swElapsed >= 0) {
+                this._swElapsed = saved.swElapsed;
+            }
+            if (Number.isFinite(saved?.swStart)) {
+                this._swStart = Math.min(saved.swStart, Date.now()); // running: keeps counting across reloads
+            }
 
             const base = saved?.base ?? attrScale;
             if (Number.isFinite(base)) this._base = Math.min(MAX_BASE, Math.max(MIN_BASE, base));
@@ -602,7 +633,9 @@
                     alarm: this._alarm,
                     alarmArmed: this._alarmArmed,
                     timerEnd: this._timerEnd,
-                    timerDuration: this._timerDuration
+                    timerDuration: this._timerDuration,
+                    swElapsed: this._swElapsed,
+                    swStart: this._swStart
                 }));
             } catch (e) { /* storage full or unavailable */ }
         }
@@ -940,6 +973,56 @@
             this._beepTimer = null;
         }
 
+        // --- Stopwatch ---
+
+        /** Elapsed stopwatch time in milliseconds. */
+        get stopwatchElapsed() {
+            return this._swElapsed + (this._swStart !== null ? Date.now() - this._swStart : 0);
+        }
+        get stopwatchRunning() { return this._swStart !== null; }
+
+        startStopwatch() {
+            if (this._swStart !== null) return;
+            this._swStart = Date.now();
+            this._updateStopwatchUI();
+            this._save();
+            this._emitChange();
+        }
+
+        stopStopwatch() {
+            if (this._swStart === null) return;
+            this._swElapsed += Date.now() - this._swStart;
+            this._swStart = null;
+            this._updateStopwatchUI();
+            this._save();
+            this._emitChange();
+        }
+
+        resetStopwatch() {
+            if (this._swStart === null && this._swElapsed === 0) return;
+            this._swStart = null;
+            this._swElapsed = 0;
+            this._updateStopwatchUI();
+            this._save();
+            this._emitChange();
+        }
+
+        /** Reflects run state onto the row and manages the 100ms display refresh. */
+        _updateStopwatchUI() {
+            const running = this._swStart !== null;
+            this._swGoBtn.textContent = running ? 'STP' : 'GO';
+            this._swGoBtn.classList.toggle('active', running);
+            this._swDisplay.value = formatStopwatch(this.stopwatchElapsed);
+            if (running && this._swTimer === null && this.isConnected) {
+                this._swTimer = setInterval(() => {
+                    this._swDisplay.value = formatStopwatch(this.stopwatchElapsed);
+                }, 100);
+            } else if (!running && this._swTimer !== null) {
+                clearInterval(this._swTimer);
+                this._swTimer = null;
+            }
+        }
+
         _emitChange() {
             this.dispatchEvent(new CustomEvent('binary-clock-change', {
                 bubbles: true,
@@ -951,7 +1034,8 @@
                     theme: this._theme,
                     alarm: this._alarm,
                     alarmArmed: this._alarmArmed,
-                    timerRunning: this._timerEnd !== null
+                    timerRunning: this._timerEnd !== null,
+                    stopwatchRunning: this._swStart !== null
                 }
             }));
         }
