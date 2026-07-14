@@ -29,6 +29,7 @@
     const DISPLAY_MODE_LABELS = { binary: 'BIN', bcd: 'BCD', time: 'DEC' };
 
     const DATE_MODES = ['binary', 'human'];
+    const THEMES = ['dark', 'light'];
     const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
     const DEFAULT_BASE = 28.8;   // px; the old 1.8rem at a 16px root
@@ -70,6 +71,7 @@
             --_dim: var(--binary-clock-dim-color, #005000);
             --_bg: var(--binary-clock-bg, rgba(0, 20, 0, 0.9));
             --_glow: var(--_c);
+            --_hi: #aaffaa;
             position: fixed;
             left: 0;
             top: 0;
@@ -86,6 +88,13 @@
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
+        }
+        :host(.light) {
+            --_c: var(--binary-clock-color-light, #007700);
+            --_dim: var(--binary-clock-dim-color-light, #77aa77);
+            --_bg: var(--binary-clock-bg-light, rgba(240, 252, 240, 0.93));
+            --_glow: rgba(0, 160, 0, 0.4);
+            --_hi: #005500;
         }
         :host([hidden]) { display: none; }
         :host(.dragging) { cursor: grabbing; }
@@ -141,7 +150,7 @@
             box-shadow: 0 0 0.29em var(--_glow);
         }
         button:hover { color: var(--_c); border-color: var(--_c); }
-        button.active:hover { color: #aaffaa; border-color: #aaffaa; }
+        button.active:hover { color: var(--_hi); border-color: var(--_hi); }
 
         .date-display {
             display: flex;
@@ -225,6 +234,7 @@
         <div class="cube">
             <div class="clock-face">
                 <div class="toggle-container">
+                    <button id="toggle-theme-btn" title="Toggle Dark/Light Theme">LHT</button>
                     <button id="toggle-date-btn" title="Toggle Binary / Human-Readable Date">DATE</button>
                     <button id="toggle-hour-mode-btn" title="Toggle 12/24 Hour Format">1100</button>
                     <button id="toggle-mode-btn" title="Cycle Time Display: Binary / BCD / Decimal">BIN</button>
@@ -263,7 +273,7 @@
     }
 
     class BinaryClockElement extends HTMLElement {
-        static get observedAttributes() { return ['display-mode', 'hour-mode', 'date-mode']; }
+        static get observedAttributes() { return ['display-mode', 'hour-mode', 'date-mode', 'theme']; }
 
         constructor() {
             super();
@@ -289,12 +299,14 @@
             this._toggleBcdBtn = root.getElementById('toggle-mode-btn');
             this._toggleHourBtn = root.getElementById('toggle-hour-mode-btn');
             this._toggleDateBtn = root.getElementById('toggle-date-btn');
+            this._toggleThemeBtn = root.getElementById('toggle-theme-btn');
             this._resizeHandle = root.querySelector('.handle.resize');
             this._rotateHandle = root.querySelector('.handle.rotate');
 
             this._displayMode = 'binary'; // 'binary', 'bcd', or 'time'
             this._hourMode = '24';        // '12' or '24'
             this._dateMode = 'binary';    // 'binary' or 'human'
+            this._theme = 'dark';         // 'dark' or 'light'
             this._rot = { ...INITIAL_ROTATION };
             this._base = DEFAULT_BASE;
             this._pos = { x: 0, y: 0 };
@@ -318,6 +330,9 @@
             this._toggleDateBtn.addEventListener('click', () => {
                 this._setDateMode(this._dateMode === 'binary' ? 'human' : 'binary');
             });
+            this._toggleThemeBtn.addEventListener('click', () => {
+                this._setTheme(this._theme === 'dark' ? 'light' : 'dark');
+            });
 
             this.addEventListener('pointerdown', (e) => this._onPointerDown(e));
             this.addEventListener('pointermove', (e) => this._onPointerMove(e));
@@ -338,6 +353,7 @@
                 this._updateBcdButtonAppearance();
                 this._updateHourButtonText();
                 this._updateDateButtonAppearance();
+                this._applyTheme();
                 this._updateClock();
                 this._applyBase();
                 this._applyRotation();
@@ -361,6 +377,7 @@
             if (name === 'display-mode') this._setDisplayMode(newValue);
             else if (name === 'hour-mode') this._setHourMode(newValue);
             else if (name === 'date-mode') this._setDateMode(newValue);
+            else if (name === 'theme') this._setTheme(newValue);
         }
 
         // --- Public API ---
@@ -371,6 +388,8 @@
         set hourMode(v) { this._setHourMode(String(v)); }
         get dateMode() { return this._dateMode; }
         set dateMode(v) { this._setDateMode(String(v)); }
+        get theme() { return this._theme; }
+        set theme(v) { this._setTheme(String(v)); }
         get scale() { return this._base; }
 
         /** Restore default rotation and scale, and re-center in the viewport. */
@@ -408,6 +427,8 @@
             if (hour === '12' || hour === '24') this._hourMode = hour;
             const date = saved?.dateMode ?? this.getAttribute('date-mode');
             if (DATE_MODES.includes(date)) this._dateMode = date;
+            const theme = saved?.theme ?? this.getAttribute('theme');
+            if (THEMES.includes(theme)) this._theme = theme;
 
             const base = saved?.base ?? attrScale;
             if (Number.isFinite(base)) this._base = Math.min(MAX_BASE, Math.max(MIN_BASE, base));
@@ -447,7 +468,8 @@
                     rotY: Math.round(this._rot.y * 10) / 10,
                     displayMode: this._displayMode,
                     hourMode: this._hourMode,
-                    dateMode: this._dateMode
+                    dateMode: this._dateMode,
+                    theme: this._theme
                 }));
             } catch (e) { /* storage full or unavailable */ }
         }
@@ -636,11 +658,26 @@
             this._emitChange();
         }
 
+        _setTheme(theme) {
+            if (!THEMES.includes(theme) || theme === this._theme) return;
+            this._theme = theme;
+            this._applyTheme();
+            this._save();
+            this._emitChange();
+        }
+
+        /** Applies the theme class and labels the button with the theme it switches TO. */
+        _applyTheme() {
+            this.classList.toggle('light', this._theme === 'light');
+            this._toggleThemeBtn.textContent = (this._theme === 'dark') ? 'LHT' : 'DRK';
+            this._toggleThemeBtn.classList.toggle('active', this._theme === 'light');
+        }
+
         _emitChange() {
             this.dispatchEvent(new CustomEvent('binary-clock-change', {
                 bubbles: true,
                 composed: true,
-                detail: { displayMode: this._displayMode, hourMode: this._hourMode, dateMode: this._dateMode }
+                detail: { displayMode: this._displayMode, hourMode: this._hourMode, dateMode: this._dateMode, theme: this._theme }
             }));
         }
 

@@ -22,6 +22,7 @@ That's it — no build step, no dependencies. The component renders in shadow DO
 | `BIN`/`BCD`/`DEC` button | Cycle the time display: Standard Binary → BCD → Decimal (readable digital time) |
 | Hour-format button | Toggle 12/24 hour format (label shows the target mode in the active encoding) |
 | `DATE` button | Toggle the date row between binary (default) and human-readable (`Y: 2026 M: JUL D: 13`) |
+| `LHT`/`DRK` button | Toggle dark/light theme (label shows the theme it switches to) |
 
 Corner grips fade in on hover (faintly visible on touch devices). A press that moves less than 5px is treated as a click, so the toggle buttons never fight with dragging.
 
@@ -35,6 +36,7 @@ All attributes are optional and act as **first-run defaults**; saved state wins 
 | `display-mode` | `binary` \| `bcd` \| `time` | Initial time display (default `binary`; `time` = decimal digital readout) |
 | `hour-mode` | `24` \| `12` | Initial hour format (default `24`) |
 | `date-mode` | `binary` \| `human` | Initial date format (default `binary`) |
+| `theme` | `dark` \| `light` | Initial theme (default `dark`: green-on-black; `light`: deep green on a pale face) |
 | `x`, `y` | px numbers | Initial position (default: centered in viewport) |
 | `scale` | px number | Initial base font size, 12–64 (default 28.8) |
 | `no-persist` | boolean | Disable localStorage entirely |
@@ -50,10 +52,11 @@ const clock = document.querySelector('binary-clock');
 clock.displayMode = 'bcd';   // or 'binary' / 'time'
 clock.hourMode = '12';       // or '24'
 clock.dateMode = 'human';    // or 'binary'
+clock.theme = 'light';       // or 'dark'
 clock.scale;                 // read-only current base font size (px)
 clock.resetView();           // default rotation + scale, re-center
 clock.clearSavedState();     // drop this instance's localStorage entry
-clock.addEventListener('binary-clock-change', (e) => console.log(e.detail)); // {displayMode, hourMode, dateMode}
+clock.addEventListener('binary-clock-change', (e) => console.log(e.detail)); // {displayMode, hourMode, dateMode, theme}
 ```
 
 ## Theming
@@ -62,9 +65,12 @@ Set CSS custom properties on the element (or any ancestor):
 
 ```css
 binary-clock {
-    --binary-clock-color: #00ffff;                 /* primary glow color */
-    --binary-clock-dim-color: #005050;             /* inactive labels/borders */
-    --binary-clock-bg: rgba(0, 20, 20, 0.9);       /* face background */
+    --binary-clock-color: #00ffff;                 /* primary glow color (dark theme) */
+    --binary-clock-dim-color: #005050;             /* inactive labels/borders (dark theme) */
+    --binary-clock-bg: rgba(0, 20, 20, 0.9);       /* face background (dark theme) */
+    --binary-clock-color-light: #006666;           /* light-theme equivalents */
+    --binary-clock-dim-color-light: #77aaaa;
+    --binary-clock-bg-light: rgba(240, 252, 252, 0.93);
     --binary-clock-z: 500;                          /* stacking order */
 }
 ```
