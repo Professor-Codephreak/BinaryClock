@@ -31,6 +31,7 @@
     const DATE_MODES = ['binary', 'human'];
     const THEMES = ['dark', 'light'];
     const ALARM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+    const MAX_TIMEZONES = 10;
     const RING_LIMIT_MS = 60000; // auto-dismiss a ringing alarm after a minute
     const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
@@ -248,6 +249,40 @@
         .lap-row .lap-split { flex: 1; }
         .lap-row .lap-total { color: var(--_dim); }
 
+        .tz-panel {
+            margin-top: 0.52em;
+            padding-top: 0.4em;
+            border-top: 0.035em dashed var(--_dim);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.3em;
+        }
+        .tz-panel[hidden] { display: none; }
+        .tz-list { display: flex; flex-direction: column; gap: 0.25em; width: 100%; }
+        .tz-list:empty { display: none; }
+        .tz-row { display: flex; align-items: center; gap: 0.347em; width: 100%; }
+        .tz-row select {
+            flex: 1;
+            min-width: 0;
+            background: transparent;
+            border: 0.058em solid var(--_dim);
+            border-radius: 0.174em;
+            color: var(--_c);
+            font-family: inherit;
+            font-size: 0.55em;
+            padding: 0.15em 0.2em;
+        }
+        .tz-row select:focus { outline: none; border-color: var(--_c); }
+        .tz-row select option { background-color: #001400; color: #00ff00; }
+        :host(.light) .tz-row select option { background-color: #f0fcf0; color: #007700; }
+        .tz-time {
+            font-size: 0.6em;
+            letter-spacing: 0.06em;
+            text-shadow: 0 0 0.2em var(--_glow);
+            white-space: nowrap;
+        }
+
         @keyframes bc-ring {
             0%, 100% { box-shadow: 0 0 0.52em var(--_glow); }
             50% { box-shadow: 0 0 1.6em var(--_glow); }
@@ -290,6 +325,7 @@
         <div class="cube">
             <div class="clock-face">
                 <div class="toggle-container">
+                    <button id="toggle-tz-btn" title="Show/Hide World Clock">TZ</button>
                     <button id="toggle-alarm-btn" title="Show/Hide Alarm Panel">ALM</button>
                     <button id="toggle-theme-btn" title="Toggle Dark/Light Theme">LHT</button>
                     <button id="toggle-date-btn" title="Toggle Binary / Human-Readable Date">DATE</button>
@@ -312,6 +348,10 @@
                     <div class="alarm-row"><span class="label">T:</span><input id="timer-input" type="text" inputmode="numeric" placeholder="MM:SS" aria-label="Countdown duration" title="Duration as MM:SS, HH:MM:SS, or minutes"><button id="timer-arm-btn" title="Start/Stop Countdown">ARM</button></div>
                     <div class="alarm-row"><span class="label">W:</span><input id="stopwatch-display" readonly value="0:00.0" aria-label="Stopwatch"><button id="stopwatch-go-btn" title="Start/Stop Stopwatch">GO</button><button id="stopwatch-lap-btn" title="Record Lap" disabled>LAP</button><button id="stopwatch-reset-btn" title="Reset Stopwatch">RST</button></div>
                     <div class="lap-list" id="lap-list" aria-label="Lap times" hidden></div>
+                </div>
+                <div class="tz-panel" id="tz-panel" hidden>
+                    <div class="tz-list" id="tz-list"></div>
+                    <button id="tz-add-btn" title="Add Timezone">+ZONE</button>
                 </div>
             </div>
         </div>
@@ -349,6 +389,46 @@
         return (h ? `${h}:${String(m).padStart(2, '0')}` : String(m)) + ':' + String(s).padStart(2, '0');
     }
 
+    let tzNames = null;
+    function getTimezoneNames() {
+        if (!tzNames) {
+            try {
+                tzNames = Intl.supportedValuesOf('timeZone');
+            } catch (e) {
+                tzNames = ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+                    'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Moscow', 'Asia/Dubai',
+                    'Asia/Kolkata', 'Asia/Shanghai', 'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland'];
+            }
+            if (!tzNames.includes('UTC')) tzNames = ['UTC', ...tzNames];
+        }
+        return tzNames;
+    }
+
+    function isValidTimezone(tz) {
+        try {
+            new Intl.DateTimeFormat('en', { timeZone: tz });
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    const tzFormatters = new Map();
+    /** {h, m, date} for `now` in the given IANA timezone. */
+    function zoneParts(now, tz) {
+        let fmt = tzFormatters.get(tz);
+        if (!fmt) {
+            fmt = new Intl.DateTimeFormat('en-CA', {
+                timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+            });
+            tzFormatters.set(tz, fmt);
+        }
+        const p = {};
+        for (const part of fmt.formatToParts(now)) p[part.type] = part.value;
+        return { h: parseInt(p.hour, 10) % 24, m: parseInt(p.minute, 10), date: `${p.year}-${p.month}-${p.day}` };
+    }
+
     /** m:ss.t (or h:mm:ss.t past an hour) from elapsed milliseconds. */
     function formatStopwatch(ms) {
         const tenths = Math.floor(ms / 100) % 10;
@@ -369,7 +449,7 @@
     }
 
     class BinaryClockElement extends HTMLElement {
-        static get observedAttributes() { return ['display-mode', 'hour-mode', 'date-mode', 'theme', 'alarm']; }
+        static get observedAttributes() { return ['display-mode', 'hour-mode', 'date-mode', 'theme', 'alarm', 'timezones']; }
 
         constructor() {
             super();
@@ -408,6 +488,10 @@
             this._swLapBtn = root.getElementById('stopwatch-lap-btn');
             this._swResetBtn = root.getElementById('stopwatch-reset-btn');
             this._lapList = root.getElementById('lap-list');
+            this._toggleTzBtn = root.getElementById('toggle-tz-btn');
+            this._tzPanel = root.getElementById('tz-panel');
+            this._tzList = root.getElementById('tz-list');
+            this._tzAddBtn = root.getElementById('tz-add-btn');
             this._resizeHandle = root.querySelector('.handle.resize');
             this._rotateHandle = root.querySelector('.handle.rotate');
 
@@ -423,6 +507,7 @@
             this._swStart = null;         // epoch ms of the current run, or null when stopped
             this._swTimer = null;         // 100ms display-refresh interval while running
             this._laps = [];              // lap totals in ms, oldest first (max 99)
+            this._timezones = [];         // IANA zone names shown in the world-clock panel
             this._ringing = false;
             this._lastTriggeredMinute = null;
             this._ringTimeout = null;
@@ -471,6 +556,14 @@
             });
             this._swLapBtn.addEventListener('click', () => this.lapStopwatch());
             this._swResetBtn.addEventListener('click', () => this.resetStopwatch());
+            this._toggleTzBtn.addEventListener('click', () => {
+                this._tzPanel.hidden = !this._tzPanel.hidden;
+            });
+            this._tzAddBtn.addEventListener('click', () => {
+                if (this._timezones.length >= MAX_TIMEZONES) return;
+                this._timezones.push('UTC');
+                this._timezonesChanged();
+            });
 
             this.addEventListener('pointerdown', (e) => this._onPointerDown(e));
             this.addEventListener('pointermove', (e) => this._onPointerMove(e));
@@ -496,6 +589,7 @@
                 if (this._timerDuration && this._timerEnd === null) this._timerInput.value = formatDuration(this._timerDuration);
                 this._updateAlarmUI();
                 this._renderLaps();
+                this._renderTimezones();
                 this._updateClock();
                 this._applyBase();
                 this._applyRotation();
@@ -528,6 +622,7 @@
                 if (newValue === null || newValue === '') this._disarmAlarm();
                 else this._armAlarm(newValue);
             }
+            else if (name === 'timezones') this.timezones = newValue ?? '';
         }
 
         // --- Public API ---
@@ -618,6 +713,10 @@
             if (Array.isArray(saved?.laps)) {
                 this._laps = saved.laps.filter((n) => Number.isFinite(n) && n >= 0).slice(0, 99);
             }
+            const zones = Array.isArray(saved?.timezones)
+                ? saved.timezones
+                : (this.getAttribute('timezones') || '').split(',').map((s) => s.trim()).filter(Boolean);
+            this._timezones = zones.filter(isValidTimezone).slice(0, MAX_TIMEZONES);
 
             const base = saved?.base ?? attrScale;
             if (Number.isFinite(base)) this._base = Math.min(MAX_BASE, Math.max(MIN_BASE, base));
@@ -665,7 +764,8 @@
                     timerDuration: this._timerDuration,
                     swElapsed: this._swElapsed,
                     swStart: this._swStart,
-                    laps: this._laps
+                    laps: this._laps,
+                    timezones: this._timezones
                 }));
             } catch (e) { /* storage full or unavailable */ }
         }
@@ -750,8 +850,8 @@
             if (this._drag) return;
             if (e.button !== 0 && e.button !== 2) return;
             const path = e.composedPath();
-            // Buttons/inputs keep their native behavior; never start a drag from them.
-            if (path.some((n) => n.tagName === 'BUTTON' || n.tagName === 'INPUT')) return;
+            // Buttons/inputs/selects keep their native behavior; never start a drag from them.
+            if (path.some((n) => n.tagName === 'BUTTON' || n.tagName === 'INPUT' || n.tagName === 'SELECT')) return;
 
             let mode;
             if (path.includes(this._resizeHandle)) mode = 'resize';
@@ -1099,6 +1199,96 @@
             }
         }
 
+        // --- World clock ---
+
+        get timezones() { return [...this._timezones]; }
+        /** Accepts an array of IANA names or a comma-separated string; invalid zones are dropped. */
+        set timezones(v) {
+            const arr = Array.isArray(v) ? v : String(v).split(',').map((s) => s.trim()).filter(Boolean);
+            this._timezones = arr.filter(isValidTimezone).slice(0, MAX_TIMEZONES);
+            this._timezonesChanged();
+        }
+
+        _timezonesChanged() {
+            this._renderTimezones();
+            this._updateWorldTimes(new Date());
+            this._save();
+            this._emitChange();
+        }
+
+        /** Rebuilds the world-clock rows (select + live time + remove button). */
+        _renderTimezones() {
+            this._tzList.textContent = '';
+            const names = getTimezoneNames();
+            this._timezones.forEach((tz, i) => {
+                const row = document.createElement('div');
+                row.className = 'tz-row';
+                const select = document.createElement('select');
+                select.setAttribute('aria-label', 'Timezone');
+                for (const name of names) {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    select.appendChild(opt);
+                }
+                if (!names.includes(tz)) select.appendChild(new Option(tz, tz));
+                select.value = tz;
+                select.addEventListener('change', () => {
+                    this._timezones[i] = select.value;
+                    this._updateWorldTimes(new Date());
+                    this._save();
+                    this._emitChange();
+                });
+                const time = document.createElement('span');
+                time.className = 'tz-time';
+                const del = document.createElement('button');
+                del.textContent = 'X';
+                del.title = 'Remove Timezone';
+                del.addEventListener('click', () => {
+                    this._timezones.splice(i, 1);
+                    this._timezonesChanged();
+                });
+                row.append(select, time, del);
+                this._tzList.appendChild(row);
+            });
+        }
+
+        /** Refreshes every world-clock row in the active display mode / hour format. */
+        _updateWorldTimes(now) {
+            if (!this._timezones.length) return;
+            const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const times = this._tzList.querySelectorAll('.tz-time');
+            this._timezones.forEach((tz, i) => {
+                if (times[i]) times[i].textContent = this._formatZoneTime(now, tz, localDate);
+            });
+        }
+
+        _formatZoneTime(now, tz, localDate) {
+            try {
+                const { h, m, date } = zoneParts(now, tz);
+                const dayMark = date > localDate ? ' +1' : (date < localDate ? ' -1' : '');
+                let hours = h;
+                let suffix = '';
+                if (this._hourMode === '12') {
+                    hours = h % 12;
+                    if (hours === 0) hours = 12;
+                    if (this._displayMode === 'time') suffix = h < 12 ? ' AM' : ' PM';
+                }
+                const hStr = String(hours).padStart(2, '0');
+                const mStr = String(m).padStart(2, '0');
+                if (this._displayMode === 'bcd') {
+                    return `${decimalToBCD(hStr[0])} ${decimalToBCD(hStr[1])}:${decimalToBCD(mStr[0])} ${decimalToBCD(mStr[1])}${dayMark}`;
+                }
+                if (this._displayMode === 'time') {
+                    return hStr + ':' + mStr + suffix + dayMark;
+                }
+                const bits = (this._hourMode === '12') ? HOURS_STD_BITS_12 : HOURS_STD_BITS_24;
+                return hours.toString(2).padStart(bits, '0') + ':' + m.toString(2).padStart(MIN_SEC_STD_BITS, '0') + dayMark;
+            } catch (e) {
+                return '?';
+            }
+        }
+
         _emitChange() {
             this.dispatchEvent(new CustomEvent('binary-clock-change', {
                 bubbles: true,
@@ -1111,7 +1301,8 @@
                     alarm: this._alarm,
                     alarmArmed: this._alarmArmed,
                     timerRunning: this._timerEnd !== null,
-                    stopwatchRunning: this._swStart !== null
+                    stopwatchRunning: this._swStart !== null,
+                    timezones: [...this._timezones]
                 }
             }));
         }
@@ -1221,6 +1412,9 @@
 
                 // 5. Alarm & countdown (active in every display mode)
                 this._checkAlarm(now);
+
+                // 6. World clock rows follow the active display mode
+                this._updateWorldTimes(now);
             } catch (error) {
                 console.error('Error during clock update:', error);
             }
