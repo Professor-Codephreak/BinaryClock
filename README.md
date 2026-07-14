@@ -33,7 +33,7 @@ The `ALM` button unfolds a panel with three rows, available in every display mod
 
 * **`A:` alarm** — pick a clock time (native time input) and press `ARM`. The button flips to `OFF` and glows; at the set minute the face pulses and emits terminal-style double beeps. One-shot: it disarms after firing.
 * **`T:` countdown** — enter a duration as `MM:SS`, `HH:MM:SS`, or a bare number of minutes, then `ARM`. The input becomes a live countdown display; at zero the same ring fires.
-* **`W:` stopwatch** — `GO` starts/`STP` pauses (accumulating), `RST` zeroes. The readout shows tenths of a second (`m:ss.t`, growing to `h:mm:ss.t`).
+* **`W:` stopwatch** — `GO` starts/`STP` pauses (accumulating), `LAP` records a lap while running, `RST` zeroes and clears laps. The readout shows tenths of a second (`m:ss.t`, growing to `h:mm:ss.t`). Laps list newest-first below the row (`L2 +0:03.1 0:08.3` — split and total), scrolling after a few entries, up to 99 laps.
 
 Tap or click anywhere on the widget to silence a ringing alarm (it also auto-silences after 60 seconds). Armed alarms, running countdowns, and the stopwatch persist across reloads — countdowns resume if their deadline is still in the future, and a running stopwatch keeps counting (it is epoch-based, so time away is included). Audio uses the Web Audio API (no assets); if the browser blocks sound before any interaction, the visual ring still fires.
 
@@ -73,6 +73,8 @@ clock.dismissAlarm();        // silence a ringing alarm/timer
 clock.startStopwatch();      // also stopStopwatch() / resetStopwatch()
 clock.stopwatchElapsed;      // elapsed ms
 clock.stopwatchRunning;      // boolean
+clock.lapStopwatch();        // record a lap while running -> {lap, total, split} (ms) or null
+clock.stopwatchLaps;         // [{lap, total, split}, ...] oldest first
 clock.addEventListener('binary-clock-alarm', (e) => console.log(e.detail)); // {kind: 'alarm'|'timer', ...}
 clock.scale;                 // read-only current base font size (px)
 clock.resetView();           // default rotation + scale, re-center

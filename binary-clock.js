@@ -153,6 +153,8 @@
         }
         button:hover { color: var(--_c); border-color: var(--_c); }
         button.active:hover { color: var(--_hi); border-color: var(--_hi); }
+        button:disabled { opacity: 0.45; cursor: default; }
+        button:disabled:hover { color: var(--_dim); border-color: var(--_dim); }
 
         .date-display {
             display: flex;
@@ -229,6 +231,23 @@
         .alarm-row input:focus { outline: none; border-color: var(--_c); box-shadow: 0 0 0.29em var(--_glow); }
         .alarm-row input::placeholder { color: var(--_dim); }
 
+        .lap-list {
+            max-height: 4.5em;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.12em;
+            font-size: 0.6em;
+            letter-spacing: 0.06em;
+            scrollbar-width: thin;
+            scrollbar-color: var(--_dim) transparent;
+        }
+        .lap-list[hidden] { display: none; }
+        .lap-row { display: flex; gap: 0.6em; }
+        .lap-row .lap-n { color: var(--_dim); min-width: 2.2em; text-align: right; }
+        .lap-row .lap-split { flex: 1; }
+        .lap-row .lap-total { color: var(--_dim); }
+
         @keyframes bc-ring {
             0%, 100% { box-shadow: 0 0 0.52em var(--_glow); }
             50% { box-shadow: 0 0 1.6em var(--_glow); }
@@ -291,7 +310,8 @@
                 <div class="alarm-panel" id="alarm-panel" hidden>
                     <div class="alarm-row"><span class="label">A:</span><input id="alarm-time" type="time" aria-label="Alarm time"><button id="alarm-arm-btn" title="Arm/Disarm Alarm">ARM</button></div>
                     <div class="alarm-row"><span class="label">T:</span><input id="timer-input" type="text" inputmode="numeric" placeholder="MM:SS" aria-label="Countdown duration" title="Duration as MM:SS, HH:MM:SS, or minutes"><button id="timer-arm-btn" title="Start/Stop Countdown">ARM</button></div>
-                    <div class="alarm-row"><span class="label">W:</span><input id="stopwatch-display" readonly value="0:00.0" aria-label="Stopwatch"><button id="stopwatch-go-btn" title="Start/Stop Stopwatch">GO</button><button id="stopwatch-reset-btn" title="Reset Stopwatch">RST</button></div>
+                    <div class="alarm-row"><span class="label">W:</span><input id="stopwatch-display" readonly value="0:00.0" aria-label="Stopwatch"><button id="stopwatch-go-btn" title="Start/Stop Stopwatch">GO</button><button id="stopwatch-lap-btn" title="Record Lap" disabled>LAP</button><button id="stopwatch-reset-btn" title="Reset Stopwatch">RST</button></div>
+                    <div class="lap-list" id="lap-list" aria-label="Lap times" hidden></div>
                 </div>
             </div>
         </div>
@@ -385,7 +405,9 @@
             this._timerArmBtn = root.getElementById('timer-arm-btn');
             this._swDisplay = root.getElementById('stopwatch-display');
             this._swGoBtn = root.getElementById('stopwatch-go-btn');
+            this._swLapBtn = root.getElementById('stopwatch-lap-btn');
             this._swResetBtn = root.getElementById('stopwatch-reset-btn');
+            this._lapList = root.getElementById('lap-list');
             this._resizeHandle = root.querySelector('.handle.resize');
             this._rotateHandle = root.querySelector('.handle.rotate');
 
@@ -400,6 +422,7 @@
             this._swElapsed = 0;          // accumulated stopwatch ms while stopped
             this._swStart = null;         // epoch ms of the current run, or null when stopped
             this._swTimer = null;         // 100ms display-refresh interval while running
+            this._laps = [];              // lap totals in ms, oldest first (max 99)
             this._ringing = false;
             this._lastTriggeredMinute = null;
             this._ringTimeout = null;
@@ -446,6 +469,7 @@
                 if (this._swStart !== null) this.stopStopwatch();
                 else this.startStopwatch();
             });
+            this._swLapBtn.addEventListener('click', () => this.lapStopwatch());
             this._swResetBtn.addEventListener('click', () => this.resetStopwatch());
 
             this.addEventListener('pointerdown', (e) => this._onPointerDown(e));
@@ -471,6 +495,7 @@
                 if (this._alarm) this._alarmInput.value = this._alarm;
                 if (this._timerDuration && this._timerEnd === null) this._timerInput.value = formatDuration(this._timerDuration);
                 this._updateAlarmUI();
+                this._renderLaps();
                 this._updateClock();
                 this._applyBase();
                 this._applyRotation();
@@ -590,6 +615,9 @@
             if (Number.isFinite(saved?.swStart)) {
                 this._swStart = Math.min(saved.swStart, Date.now()); // running: keeps counting across reloads
             }
+            if (Array.isArray(saved?.laps)) {
+                this._laps = saved.laps.filter((n) => Number.isFinite(n) && n >= 0).slice(0, 99);
+            }
 
             const base = saved?.base ?? attrScale;
             if (Number.isFinite(base)) this._base = Math.min(MAX_BASE, Math.max(MIN_BASE, base));
@@ -636,7 +664,8 @@
                     timerEnd: this._timerEnd,
                     timerDuration: this._timerDuration,
                     swElapsed: this._swElapsed,
-                    swStart: this._swStart
+                    swStart: this._swStart,
+                    laps: this._laps
                 }));
             } catch (e) { /* storage full or unavailable */ }
         }
@@ -1000,12 +1029,57 @@
         }
 
         resetStopwatch() {
-            if (this._swStart === null && this._swElapsed === 0) return;
+            if (this._swStart === null && this._swElapsed === 0 && this._laps.length === 0) return;
             this._swStart = null;
             this._swElapsed = 0;
+            this._laps = [];
+            this._renderLaps();
             this._updateStopwatchUI();
             this._save();
             this._emitChange();
+        }
+
+        /** Records a lap while running; returns {lap, total, split} in ms, or null. */
+        lapStopwatch() {
+            if (this._swStart === null || this._laps.length >= 99) return null;
+            const total = Math.round(this.stopwatchElapsed);
+            const split = total - (this._laps.length ? this._laps[this._laps.length - 1] : 0);
+            this._laps.push(total);
+            this._renderLaps();
+            this._save();
+            this._emitChange();
+            return { lap: this._laps.length, total, split };
+        }
+
+        /** Laps as {lap, total, split} objects (ms), oldest first. */
+        get stopwatchLaps() {
+            return this._laps.map((total, i) => ({
+                lap: i + 1,
+                total,
+                split: total - (i ? this._laps[i - 1] : 0)
+            }));
+        }
+
+        /** Rebuilds the lap list, newest lap on top so it's visible without scrolling. */
+        _renderLaps() {
+            this._lapList.hidden = this._laps.length === 0;
+            this._lapList.textContent = '';
+            const laps = this.stopwatchLaps;
+            for (let i = laps.length - 1; i >= 0; i--) {
+                const row = document.createElement('div');
+                row.className = 'lap-row';
+                const n = document.createElement('span');
+                n.className = 'lap-n';
+                n.textContent = 'L' + laps[i].lap;
+                const split = document.createElement('span');
+                split.className = 'lap-split';
+                split.textContent = '+' + formatStopwatch(laps[i].split);
+                const total = document.createElement('span');
+                total.className = 'lap-total';
+                total.textContent = formatStopwatch(laps[i].total);
+                row.append(n, split, total);
+                this._lapList.appendChild(row);
+            }
         }
 
         /** Reflects run state onto the row and manages the 100ms display refresh. */
@@ -1013,6 +1087,7 @@
             const running = this._swStart !== null;
             this._swGoBtn.textContent = running ? 'STP' : 'GO';
             this._swGoBtn.classList.toggle('active', running);
+            this._swLapBtn.disabled = !running;
             this._swDisplay.value = formatStopwatch(this.stopwatchElapsed);
             if (running && this._swTimer === null && this.isConnected) {
                 this._swTimer = setInterval(() => {
