@@ -28,6 +28,9 @@
     const DISPLAY_MODES = ['binary', 'bcd', 'time'];
     const DISPLAY_MODE_LABELS = { binary: 'BIN', bcd: 'BCD', time: 'DEC' };
 
+    const DATE_MODES = ['binary', 'human'];
+    const MONTH_NAMES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
     const DEFAULT_BASE = 28.8;   // px; the old 1.8rem at a 16px root
     const MIN_BASE = 12;
     const MAX_BASE = 64;
@@ -132,13 +135,13 @@
             min-width: 2.315em;
             text-align: center;
         }
-        #toggle-mode-btn.active {
+        button.active {
             color: var(--_c);
             border-color: var(--_c);
             box-shadow: 0 0 0.29em var(--_glow);
         }
         button:hover { color: var(--_c); border-color: var(--_c); }
-        #toggle-mode-btn.active:hover { color: #aaffaa; border-color: #aaffaa; }
+        button.active:hover { color: #aaffaa; border-color: #aaffaa; }
 
         .date-display {
             display: flex;
@@ -222,6 +225,7 @@
         <div class="cube">
             <div class="clock-face">
                 <div class="toggle-container">
+                    <button id="toggle-date-btn" title="Toggle Binary / Human-Readable Date">DATE</button>
                     <button id="toggle-hour-mode-btn" title="Toggle 12/24 Hour Format">1100</button>
                     <button id="toggle-mode-btn" title="Cycle Time Display: Binary / BCD / Decimal">BIN</button>
                 </div>
@@ -259,7 +263,7 @@
     }
 
     class BinaryClockElement extends HTMLElement {
-        static get observedAttributes() { return ['display-mode', 'hour-mode']; }
+        static get observedAttributes() { return ['display-mode', 'hour-mode', 'date-mode']; }
 
         constructor() {
             super();
@@ -284,11 +288,13 @@
             this._prevSeconds = -1;
             this._toggleBcdBtn = root.getElementById('toggle-mode-btn');
             this._toggleHourBtn = root.getElementById('toggle-hour-mode-btn');
+            this._toggleDateBtn = root.getElementById('toggle-date-btn');
             this._resizeHandle = root.querySelector('.handle.resize');
             this._rotateHandle = root.querySelector('.handle.rotate');
 
-            this._displayMode = 'binary'; // 'bcd' or 'binary'
+            this._displayMode = 'binary'; // 'binary', 'bcd', or 'time'
             this._hourMode = '24';        // '12' or '24'
+            this._dateMode = 'binary';    // 'binary' or 'human'
             this._rot = { ...INITIAL_ROTATION };
             this._base = DEFAULT_BASE;
             this._pos = { x: 0, y: 0 };
@@ -309,6 +315,9 @@
             this._toggleHourBtn.addEventListener('click', () => {
                 this._setHourMode(this._hourMode === '24' ? '12' : '24');
             });
+            this._toggleDateBtn.addEventListener('click', () => {
+                this._setDateMode(this._dateMode === 'binary' ? 'human' : 'binary');
+            });
 
             this.addEventListener('pointerdown', (e) => this._onPointerDown(e));
             this.addEventListener('pointermove', (e) => this._onPointerMove(e));
@@ -328,6 +337,7 @@
                 this._restoreState();
                 this._updateBcdButtonAppearance();
                 this._updateHourButtonText();
+                this._updateDateButtonAppearance();
                 this._updateClock();
                 this._applyBase();
                 this._applyRotation();
@@ -350,6 +360,7 @@
             if (!this._initialized || oldValue === newValue) return;
             if (name === 'display-mode') this._setDisplayMode(newValue);
             else if (name === 'hour-mode') this._setHourMode(newValue);
+            else if (name === 'date-mode') this._setDateMode(newValue);
         }
 
         // --- Public API ---
@@ -358,6 +369,8 @@
         set displayMode(v) { this._setDisplayMode(String(v)); }
         get hourMode() { return this._hourMode; }
         set hourMode(v) { this._setHourMode(String(v)); }
+        get dateMode() { return this._dateMode; }
+        set dateMode(v) { this._setDateMode(String(v)); }
         get scale() { return this._base; }
 
         /** Restore default rotation and scale, and re-center in the viewport. */
@@ -393,6 +406,8 @@
             if (DISPLAY_MODES.includes(mode)) this._displayMode = mode;
             const hour = saved?.hourMode ?? attrHour;
             if (hour === '12' || hour === '24') this._hourMode = hour;
+            const date = saved?.dateMode ?? this.getAttribute('date-mode');
+            if (DATE_MODES.includes(date)) this._dateMode = date;
 
             const base = saved?.base ?? attrScale;
             if (Number.isFinite(base)) this._base = Math.min(MAX_BASE, Math.max(MIN_BASE, base));
@@ -431,7 +446,8 @@
                     rotX: Math.round(this._rot.x * 10) / 10,
                     rotY: Math.round(this._rot.y * 10) / 10,
                     displayMode: this._displayMode,
-                    hourMode: this._hourMode
+                    hourMode: this._hourMode,
+                    dateMode: this._dateMode
                 }));
             } catch (e) { /* storage full or unavailable */ }
         }
@@ -611,11 +627,20 @@
             this._emitChange();
         }
 
+        _setDateMode(mode) {
+            if (!DATE_MODES.includes(mode) || mode === this._dateMode) return;
+            this._dateMode = mode;
+            this._updateDateButtonAppearance();
+            this._updateClock();
+            this._save();
+            this._emitChange();
+        }
+
         _emitChange() {
             this.dispatchEvent(new CustomEvent('binary-clock-change', {
                 bubbles: true,
                 composed: true,
-                detail: { displayMode: this._displayMode, hourMode: this._hourMode }
+                detail: { displayMode: this._displayMode, hourMode: this._hourMode, dateMode: this._dateMode }
             }));
         }
 
@@ -623,6 +648,11 @@
         _updateBcdButtonAppearance() {
             this._toggleBcdBtn.textContent = DISPLAY_MODE_LABELS[this._displayMode];
             this._toggleBcdBtn.classList.toggle('active', this._displayMode !== 'binary');
+        }
+
+        /** Updates the DATE toggle button's active appearance. */
+        _updateDateButtonAppearance() {
+            this._toggleDateBtn.classList.toggle('active', this._dateMode === 'human');
         }
 
         /** Updates the 12/24 toggle button's text based on BOTH hourMode and displayMode. */
@@ -670,10 +700,16 @@
             try {
                 const now = new Date();
 
-                // 1. Update Date (Always Standard Binary)
-                this._yearEl.textContent = now.getFullYear().toString(2).padStart(YEAR_BITS, '0');
-                this._monthEl.textContent = (now.getMonth() + 1).toString(2).padStart(MONTH_BITS, '0');
-                this._dayEl.textContent = now.getDate().toString(2).padStart(DAY_BITS, '0');
+                // 1. Update Date (Standard Binary, or Human-Readable when toggled)
+                if (this._dateMode === 'human') {
+                    this._yearEl.textContent = String(now.getFullYear());
+                    this._monthEl.textContent = MONTH_NAMES[now.getMonth()];
+                    this._dayEl.textContent = String(now.getDate()).padStart(2, '0');
+                } else {
+                    this._yearEl.textContent = now.getFullYear().toString(2).padStart(YEAR_BITS, '0');
+                    this._monthEl.textContent = (now.getMonth() + 1).toString(2).padStart(MONTH_BITS, '0');
+                    this._dayEl.textContent = now.getDate().toString(2).padStart(DAY_BITS, '0');
+                }
 
                 // 2. Process Hours based on 12/24 mode
                 const rawHours24 = now.getHours(); // 0-23

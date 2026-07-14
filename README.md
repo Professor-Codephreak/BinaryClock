@@ -21,6 +21,7 @@ That's it — no build step, no dependencies. The component renders in shadow DO
 | Bottom-right corner grip (solid) | **Resize** — proportional scaling of the whole widget |
 | `BIN`/`BCD`/`DEC` button | Cycle the time display: Standard Binary → BCD → Decimal (readable digital time) |
 | Hour-format button | Toggle 12/24 hour format (label shows the target mode in the active encoding) |
+| `DATE` button | Toggle the date row between binary (default) and human-readable (`Y: 2026 M: JUL D: 13`) |
 
 Corner grips fade in on hover (faintly visible on touch devices). A press that moves less than 5px is treated as a click, so the toggle buttons never fight with dragging.
 
@@ -33,6 +34,7 @@ All attributes are optional and act as **first-run defaults**; saved state wins 
 | `storage-key` | any string | localStorage namespace (`binary-clock:v1:<key>`). Set explicit keys when using multiple instances. |
 | `display-mode` | `binary` \| `bcd` \| `time` | Initial time display (default `binary`; `time` = decimal digital readout) |
 | `hour-mode` | `24` \| `12` | Initial hour format (default `24`) |
+| `date-mode` | `binary` \| `human` | Initial date format (default `binary`) |
 | `x`, `y` | px numbers | Initial position (default: centered in viewport) |
 | `scale` | px number | Initial base font size, 12–64 (default 28.8) |
 | `no-persist` | boolean | Disable localStorage entirely |
@@ -47,10 +49,11 @@ All attributes are optional and act as **first-run defaults**; saved state wins 
 const clock = document.querySelector('binary-clock');
 clock.displayMode = 'bcd';   // or 'binary' / 'time'
 clock.hourMode = '12';       // or '24'
+clock.dateMode = 'human';    // or 'binary'
 clock.scale;                 // read-only current base font size (px)
 clock.resetView();           // default rotation + scale, re-center
 clock.clearSavedState();     // drop this instance's localStorage entry
-clock.addEventListener('binary-clock-change', (e) => console.log(e.detail)); // {displayMode, hourMode}
+clock.addEventListener('binary-clock-change', (e) => console.log(e.detail)); // {displayMode, hourMode, dateMode}
 ```
 
 ## Theming
@@ -107,12 +110,13 @@ This BCD representation correctly handles the full range of hours (00-23) and mi
 
 ### Date Display
 
-The Year, Month, and Day values are shown in standard binary, padded to fixed lengths for consistent alignment:
+By default the Year, Month, and Day values are shown in standard binary, padded to fixed lengths for consistent alignment:
 ```txt
 * Year: 11 bits
 * Month: 4 bits
 * Day: 5 bits
 ```
+The `DATE` button toggles a human-readable format instead — `Y: 2026  M: JUL  D: 13` — glowing bright while active.
 
 ### Time Display & Toggles
 
